@@ -1,0 +1,20 @@
+2026-02-15 08:00:00,001 [      1]   INFO - com.intellij.openapi.application - Application initialized
+2026-02-15 08:00:00,500 [    500]   INFO - com.intellij.openapi.editor - Editor ready
+2026-02-15 08:00:01,000 [   1000]   INFO - com.intellij.openapi.fileTypes - File type associations loaded
+2026-02-15 08:00:01,500 [   1500]   INFO - com.intellij.openapi.vfs - Virtual file system ready
+2026-02-15 08:00:02,000 [   2000]   INFO - com.intellij.ide.ui.LafManager - Look and feel initialized
+2026-02-15 08:00:02,500 [   2500]   INFO - com.intellij.openapi.wm.impl.WindowManagerImpl - Window manager initialized
+2026-02-15 08:00:03,000 [   3000]   INFO - com.intellij.openapi.Disposable - Disposable registry initialized
+2026-02-15 08:00:03,500 [   3500]   INFO - com.intellij.openapi.util.registry.Registry - Registry values loaded
+2026-02-15 08:00:04,000 [   4000]   INFO - com.intellij.ide.IdeEventQueue - Event queue started
+2026-02-15 08:00:04,500 [   4500]   INFO - com.intellij.openapi.progress.TaskInfo - Background tasks started
+2026-02-15 08:00:05,000 [   5000]   INFO - com.intellij.openapi.application.ApplicationImpl - ApplicationImpl started
+2026-02-15 08:00:05,500 [   5500]   INFO - com.intellij.openapi.keymap.KeymapManager - Keymap loaded: Mac OS X
+2026-02-15 08:00:06,000 [   6000]   INFO - com.intellij.openapi.actionSystem.ActionManager - Actions registered
+2026-02-15 08:00:06,500 [   6500]   INFO - com.intellij.openapi.components.PersistentStateComponent - State components restored
+2026-02-15 08:00:07,000 [   7000]   INFO - com.intellij.openapi.fileEditor.FileEditorManager - File editor manager initialized
+2026-02-15 08:00:07,500 [   7500]   INFO - com.intellij.openapi.projectRoots.ProjectRootManager - Project roots loaded
+2026-02-15 08:00:08,000 [   8000]   INFO - com.intellij.openapi.vfs.newvfs.RefreshSession - Refresh started
+2026-02-15 08:00:08,500 [   8500]   INFO - com.intellij.openapi.vfs.newvfs.RefreshSession - Refresh finished in 500ms
+2026-02-15 08:00:09,000 [   9000]   INFO - com.intellij.ide.ui.UISettings - UI settings restored
+2026-02-15 08:00:09,500 [   9500]   INFO - org.jetbrains.plugins.terminal - Terminal initialized

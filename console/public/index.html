@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>CodexJournal-Lite Console</title>
+<script>
+  (function() {
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var urlTheme = qs.get('theme');
+      var saved = localStorage.getItem('cjl-theme');
+      var theme = (urlTheme === 'light' || urlTheme === 'dark') ? urlTheme
+        : (saved === 'light' || saved === 'dark') ? saved
+        : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+    } catch (_) {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  })();
+</script>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">CJ</span>
+    <div>
+      <h1>CodexJournal-Lite</h1>
+      <p class="muted small" id="brand-meta">Loading...</p>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="meta-pill" id="server-version">v0.6.0</span>
+    <span class="meta-pill" id="server-pill">127.0.0.1:7777</span>
+    <span class="meta-pill good" id="server-health"><span class="dot"></span> Running</span>
+    <span class="meta-pill muted" id="server-time">-</span>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="dashboard" role="tab"><span>Dashboard</span></button>
+  <button class="tab" data-tab="actions" role="tab"><span>Actions</span></button>
+  <button class="tab" data-tab="journal" role="tab"><span>Journal</span></button>
+  <button class="tab" data-tab="reports" role="tab"><span>Reports</span></button>
+  <button class="tab" data-tab="data" role="tab"><span>Data</span></button>
+  <button class="tab" data-tab="dist" role="tab"><span>Dist</span></button>
+  <button class="tab" data-tab="verify" role="tab"><span>Verify</span></button>
+  <span class="tabs-spacer"></span>
+  <button class="tab ghost" id="theme-toggle" title="Toggle theme"><span id="theme-icon">Theme</span></button>
+  <button class="tab ghost" id="search-toggle" title="Search (Ctrl+K)">Search</button>
+  <button class="tab ghost" id="refresh-all" title="Refresh">Refresh</button>
+</nav>
+
+<div id="search-overlay" class="search-overlay hidden" role="dialog" aria-label="Global search">
+  <div class="search-backdrop" id="search-backdrop"></div>
+  <div class="search-panel">
+    <div class="search-input-row">
+      <input type="search" id="search-input" placeholder="Search tasks, reports, keywords... (Ctrl+K)" autocomplete="off" />
+      <span class="muted small" id="search-hint">Esc closes</span>
+    </div>
+    <div class="search-results" id="search-results">
+      <p class="muted small" style="padding:18px;text-align:center">Type to search tasks, journal files, and reports.</p>
+    </div>
+    <div class="search-footer muted small">
+      <span id="search-summary">Ready</span>
+      <span style="margin-left:auto">Ctrl+K toggles search</span>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section class="panel" data-panel="dashboard">
+    <div class="grid kpi">
+      <div class="kpi-card"><div class="kpi-label">Tasks</div><div class="kpi-value" id="c-tasks">-</div><div class="kpi-sub" id="c-messages-sub">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">Active Days</div><div class="kpi-value" id="c-days">-</div><div class="kpi-sub" id="c-journals-sub">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">Doctor</div><div class="kpi-value" id="c-doctor">-</div><div class="kpi-sub" id="c-doctor-sub">environment checks</div></div>
+      <div class="kpi-card"><div class="kpi-label">Artifacts</div><div class="kpi-value" id="c-dist">-</div><div class="kpi-sub" id="c-dist-sub">local zip packages</div></div>
+    </div>
+
+    <div class="grid main">
+      <div class="card chart-card"><div class="card-head"><h2>Daily Activity</h2><span class="muted small" id="daily-meta">Recent days</span></div><div id="daily-chart" class="chart-host"></div></div>
+      <div class="card chart-card"><div class="card-head"><h2>Task Types</h2><span class="muted small" id="type-meta">-</span></div><div id="type-chart" class="chart-host"></div></div>
+    </div>
+
+    <div class="grid main">
+      <div class="card chart-card"><div class="card-head"><h2>Top Keywords</h2><span class="muted small">Local archive</span></div><div id="kw-chart" class="chart-host"></div></div>
+      <div class="card activity-card"><div class="card-head"><h2>Recent Activity</h2><span class="muted small" id="recent-count">-</span></div><ol id="recent-tasks" class="recent-feed"></ol></div>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="actions">
+    <div class="action-groups">
+      <div class="action-group">
+        <div class="group-label">Daily</div>
+        <div class="action-grid">
+          <button class="act" data-cmd="check"><span class="act-name">check</span><span class="act-desc">Verify environment and output directories</span></button>
+          <button class="act primary" data-cmd="archive" data-force="1"><span class="act-name">archive <span class="flag">--force</span></span><span class="act-desc">Re-parse Codex sessions</span></button>
+          <button class="act" data-cmd="summarize"><span class="act-name">summarize</span><span class="act-desc">Build monthly, yearly, and pattern reports</span></button>
+        </div>
+      </div>
+      <div class="action-group">
+        <div class="group-label">Checks</div>
+        <div class="action-grid">
+          <button class="act" data-cmd="stats"><span class="act-name">stats</span><span class="act-desc">Regenerate stats.json</span></button>
+          <button class="act" data-cmd="doctor"><span class="act-name">doctor</span><span class="act-desc">Run environment checks</span></button>
+          <button class="act" data-cmd="index-outputs"><span class="act-name">index:outputs</span><span class="act-desc">Write output-index files</span></button>
+          <button class="act" data-cmd="scan-sources"><span class="act-name">scan:sources</span><span class="act-desc">Inventory IDEA / JetBrains logs</span></button>
+          <button class="act" data-cmd="build-index"><span class="act-name">build-index</span><span class="act-desc">Rebuild data/index.json</span></button>
+        </div>
+      </div>
+      <div class="action-group">
+        <div class="group-label">Heavy</div>
+        <div class="action-grid">
+          <button class="act" data-cmd="package-local"><span class="act-name">package:local</span><span class="act-desc">Build local handoff zip</span></button>
+          <button class="act warn" data-cmd="verify" data-skiparchive="1"><span class="act-name">verify <span class="flag">--SkipArchive</span></span><span class="act-desc">Run faster verification</span></button>
+          <button class="act warn" data-cmd="verify"><span class="act-name">verify <span class="flag">full</span></span><span class="act-desc">Run full verification and archive</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card log-card">
+      <div class="card-head">
+        <h2 id="log-title">Live Log</h2>
+        <div class="log-actions">
+          <span id="job-status" class="status-pill">Idle</span>
+          <span class="muted small" id="job-cmd">-</span>
+          <button class="btn ghost" id="job-stop" disabled>Stop</button>
+          <button class="btn ghost" id="job-clear">Clear</button>
+          <label class="muted small"><input type="checkbox" id="job-autoscroll" checked /> Autoscroll</label>
+        </div>
+      </div>
+      <pre id="job-log" class="log"></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Recent Jobs</h2><span class="muted small">Latest 30</span></div>
+      <table class="table" id="job-history">
+        <thead><tr><th>Started</th><th>Command</th><th>Exit</th><th>Duration</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="journal">
+    <div class="split">
+      <div class="card sidebar">
+        <div class="card-head"><h2>Dates</h2><span class="muted small" id="journal-count">-</span></div>
+        <input type="search" id="journal-filter" placeholder="Filter by date (YYYY-MM-DD)" />
+        <ul id="journal-list" class="file-list journal-list"></ul>
+      </div>
+      <div class="card"><div class="card-head"><h2 id="journal-title">Select a date</h2><span class="muted small" id="journal-meta">-</span></div><div id="journal-content" class="md"></div></div>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="reports">
+    <div class="split">
+      <div class="card sidebar"><div class="card-head"><h2>Reports</h2><span class="muted small" id="report-count">-</span></div><div id="report-list" class="report-groups"></div></div>
+      <div class="card"><div class="card-head"><h2 id="report-title">Select a report</h2><span class="muted small" id="report-meta">-</span></div><div id="report-content" class="md"></div></div>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="data">
+    <div class="split">
+      <div class="card sidebar">
+        <div class="card-head"><h2>Data Files</h2></div>
+        <ul id="data-list" class="file-list data-list"></ul>
+        <div class="card-head" style="margin-top:18px"><h2>Task Search</h2></div>
+        <div class="type-filter" id="type-filter"></div>
+        <input type="search" id="tasks-search" placeholder="Title / summary / type / date / keyword" />
+        <p class="muted small" id="tasks-count">-</p>
+        <ul id="tasks-list" class="task-list"></ul>
+        <div class="pager"><button class="btn ghost" id="tasks-prev">Previous</button><span class="muted" id="tasks-page">Page 1</span><button class="btn ghost" id="tasks-next">Next</button></div>
+      </div>
+      <div class="card"><div class="card-head"><h2 id="data-title">Select a file</h2><span class="muted small" id="data-meta">-</span></div><pre id="data-content" class="md json-host"></pre></div>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="dist">
+    <div class="card">
+      <div class="card-head"><h2>Artifacts</h2><span class="muted small" id="dist-count">-</span></div>
+      <p class="muted small">Artifacts are generated locally. ZIP packages exclude `data/index.json`, `.env`, `node_modules/`, `.git/`, and `reports/errors.log`.</p>
+      <ul id="dist-list" class="dist-list"></ul>
+    </div>
+  </section>
+
+  <section class="panel hidden" data-panel="verify">
+    <div class="card">
+      <div class="card-head">
+        <h2>Latest Verify Log</h2>
+        <div class="log-actions">
+          <span class="muted small" id="verify-meta">-</span>
+          <button class="btn ghost" id="verify-refresh">Refresh</button>
+          <button class="btn warn" id="verify-run" data-cmd="verify" data-skiparchive="1">Run verify (--SkipArchive)</button>
+        </div>
+      </div>
+      <pre id="verify-tail" class="log"></pre>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span class="muted small">Local only / 127.0.0.1 / no upload / v0.6.0</span>
+</footer>
+
+<script src="/static/app.js" defer></script>
+<div id="toast-host" class="toast-host"></div>
+</body>
+</html>
