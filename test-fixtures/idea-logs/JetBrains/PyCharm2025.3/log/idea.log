@@ -1,0 +1,21 @@
+2026-02-15 09:12:11,103 [   1234]   INFO - #c.i.o.u.i.UpdateManager - Checking for updates against https://example.invalid/
+2026-02-15 09:12:11,140 [   1271]   INFO - #c.i.d.PerformanceWatcherImpl - Post-startup activities under progress took 472ms
+2026-02-15 09:12:11,180 [   1311]   INFO - #c.i.p.m.f.i.ImportsRankingModelService - Successfully loaded imports ranking model
+2026-02-15 09:12:11,191 [   1322]   INFO - #c.i.s.SpellCheckerManager - Loaded dictionary
+2026-02-15 09:12:11,210 [   1341]   INFO - #c.i.w.i.i.j.s.JpsGlobalModelSynchronizerImpl - Loading global entities
+2026-02-15 09:12:12,001 [   2132]   INFO - com.intellij.openapi.wm.impl.WindowManagerImpl - Window 'Project' opened
+2026-02-15 09:12:13,557 [   3688]   INFO - org.jetbrains.plugins.terminal - Terminal shell integration initialized
+2026-02-15 09:12:14,001 [   4132]   INFO - com.intellij.ide.ui.UISettings - Restored IDE settings from disk
+2026-02-15 09:12:15,000 [   5131]   INFO - com.intellij.openapi.projectRoots - Project roots reloaded
+2026-02-15 09:12:16,500 [   6631]   INFO - org.jetbrains.plugins.github - GitHub plugin initialized
+2026-02-15 09:12:17,005 [   7136]   INFO - com.intellij.ide.actions - Run action 'OpenFile'
+2026-02-15 09:12:18,100 [   8231]   INFO - com.intellij.openapi.editor - Editor initialized
+2026-02-15 09:12:19,500 [   9631]   INFO - com.intellij.openapi.fileEditor - File editor opened
+2026-02-15 09:12:20,000 [ 10131]   INFO - com.intellij.openapi.projectRoots - Project structure updated
+2026-02-15 09:12:21,500 [ 10631]   INFO - org.jetbrains.plugins.terminal - Terminal session created
+2026-02-15 09:12:22,500 [ 11631]   INFO - com.intellij.openapi.wm.impl - Window focus changed
+2026-02-15 09:12:23,500 [ 12631]   INFO - com.intellij.openapi.projectRoots - Module reloaded
+2026-02-15 09:12:24,500 [ 13631]   INFO - com.intellij.openapi.vfs - Virtual file system refreshed
+2026-02-15 09:12:25,500 [ 14631]   INFO - org.jetbrains.plugins.terminal - Terminal command executed
+2026-02-15 09:12:26,500 [ 15631]   INFO - com.intellij.ide.actions - Run action 'SaveDocument'
+2026-02-15 09:12:27,500 [ 16631]   INFO - com.intellij.openapi.projectRoots - Project state synchronized

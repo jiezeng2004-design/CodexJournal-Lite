@@ -1,0 +1,19 @@
+2026-02-15 10:01:01,001 [   1001]   INFO - ai.assistant.session - New AI Assistant session opened for user in project root
+2026-02-15 10:01:01,500 [   1500]   INFO - ai.assistant.prompt - Sending prompt to LLM model: "summarize the current open file"
+2026-02-15 10:01:02,001 [   2001]   INFO - ai.assistant.llm - Calling OpenAI-compatible endpoint with completion model gpt-test-1
+2026-02-15 10:01:03,500 [   3500]   INFO - ai.assistant.completion - LLM response received, 1 completion candidate returned
+2026-02-15 10:01:04,100 [   4100]   INFO - ai.assistant.stream - Streaming first 128 tokens of completion to inline editor
+2026-02-15 10:01:05,200 [   5200]   INFO - ai.assistant.context - Built chat context from current file, 4 anchor lines
+2026-02-15 10:01:06,400 [   6400]   INFO - ai.assistant.session - User accepted the completion, replaced line 42
+2026-02-15 10:01:07,800 [   7800]   INFO - ai.assistant.session - Chat history compacted from 8 to 2 turns
+2026-02-15 10:02:01,001 [  60001]   INFO - ai.assistant.session - New AI Assistant session opened
+2026-02-15 10:02:01,500 [  60500]   INFO - ai.assistant.prompt - User prompt: "refactor this helper to be async"
+2026-02-15 10:02:02,000 [  61000]   INFO - ai.assistant.llm - Request dispatched to provider Copilot-proxy with model gpt-test-1
+2026-02-15 10:02:03,500 [  62500]   INFO - ai.assistant.completion - Got back 3 completion variants
+2026-02-15 10:02:04,000 [  63000]   INFO - ai.assistant.user - User discarded all 3 completion variants
+2026-02-15 10:02:05,000 [  64000]   INFO - ai.assistant.session - Chat session closed by user
+2026-02-15 10:02:06,000 [  65000]   INFO - ai.assistant.audit - Wrote audit log entry, 2 events
+2026-02-15 10:02:07,000 [  66000]   INFO - ai.assistant.session - Daily prompt token total: 1284
+2026-02-15 10:02:08,000 [  67000]   INFO - ai.assistant.config - Model temperature = 0.2, max tokens = 1024
+2026-02-15 10:02:09,000 [  68000]   INFO - ai.assistant.audit - Wrote audit log entry, 0 events
+2026-02-15 10:02:10,000 [  69000]   INFO - ai.assistant.session - Next prompt will use Anthropic provider fallback

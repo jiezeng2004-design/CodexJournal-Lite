@@ -1,0 +1,68 @@
+{
+  "name": "codexjournal-lite",
+  "version": "0.6.0",
+  "description": "Local-only CLI + dashboard that turns Codex session files into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
+  "bin": {
+    "codexjournal-lite": "src/index.js"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "archive": "node src/index.js archive",
+    "build-index": "node src/index.js build-index",
+    "stats": "node src/index.js stats",
+    "check": "node src/index.js check",
+    "verify": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
+    "verify:fresh": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -Fresh",
+    "scan:sources": "node src/index.js scan-sources",
+    "test:sources": "node src/sources/idea.test.js",
+    "summarize": "node src/index.js summarize",
+    "doctor": "node src/index.js doctor",
+    "index:outputs": "node src/index.js index-outputs",
+    "package:local": "powershell -ExecutionPolicy Bypass -File scripts/package-local.ps1",
+    "console": "node console/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "author": "CodexJournal-Lite contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jiezeng2004-design/CodexJournal-Lite.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jiezeng2004-design/CodexJournal-Lite/issues"
+  },
+  "homepage": "https://github.com/jiezeng2004-design/CodexJournal-Lite#readme",
+  "keywords": [
+    "codex",
+    "journal",
+    "local-only",
+    "privacy",
+    "cli",
+    "markdown",
+    "ai-work-log"
+  ],
+  "files": [
+    "src/",
+    "scripts/",
+    "console/",
+    "docs/",
+    "test-fixtures/",
+    "config.json",
+    ".gitattributes",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "data/.gitkeep",
+    "data/README.md",
+    "journal/.gitkeep",
+    "journal/README.md",
+    "reports/.gitkeep",
+    "reports/README.md",
+    "dist/.gitkeep"
+  ],
+  "dependencies": {}
+}

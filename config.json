@@ -1,0 +1,23 @@
+{
+  "sessionsDir": "%USERPROFILE%/.codex/sessions",
+  "journalDir": "journal",
+  "dataDir": "data",
+  "reportsDir": "reports",
+  "timezone": "local",
+  "maxSummaryChars": 300,
+  "maxKeywordCount": 12,
+  "sources": [
+    {
+      "name": "codex",
+      "type": "codex",
+      "enabled": true,
+      "sessionsDir": "%USERPROFILE%/.codex/sessions"
+    },
+    {
+      "name": "idea-ai",
+      "type": "idea",
+      "enabled": true,
+      "logDirs": []
+    }
+  ]
+}
