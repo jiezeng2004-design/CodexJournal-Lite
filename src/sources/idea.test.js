@@ -126,6 +126,18 @@ const realUserNames = new Set();
 if (process.env.USERNAME) realUserNames.add(process.env.USERNAME);
 if (process.env.USER) realUserNames.add(process.env.USER);
 if (process.env.USERPROFILE) realUserNames.add(path.basename(process.env.USERPROFILE));
+// Filter out common CI / Docker / system usernames that are not personal
+// identities. This prevents false positives in GitHub Actions, Docker
+// containers, and similar non-interactive environments.
+const KNOWN_NON_PERSONAL = new Set([
+  'root', 'ci', 'runner', 'runneradmin', 'node',
+  'default', 'user', 'administrator', 'public'
+]);
+for (const n of realUserNames) {
+  if (n && KNOWN_NON_PERSONAL.has(n.toLowerCase())) {
+    realUserNames.delete(n);
+  }
+}
 function realUserInPath(p) {
   for (const u of realUserNames) {
     if (!u) continue;

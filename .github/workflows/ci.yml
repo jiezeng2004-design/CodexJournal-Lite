@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    name: Verify (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify fresh clone
+        run: npm.cmd run verify:fresh
+
+      - name: Run offline fixture tests
+        run: npm.cmd run test:sources
+
+      - name: Dry-run npm pack
+        run: npm.cmd pack --dry-run

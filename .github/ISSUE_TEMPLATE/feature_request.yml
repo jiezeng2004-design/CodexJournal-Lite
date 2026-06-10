@@ -1,0 +1,71 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. CodexJournal-Lite is intentionally small and
+        local-only — please keep the project's constraints in mind:
+
+        - No npm dependencies (Node.js built-ins only)
+        - No network calls
+        - No writes outside the project root
+        - No modifications to source `.codex/sessions` files
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem would this feature solve? Is it related to a frustration?
+      placeholder: I always have to manually ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature you'd like to see. Be as specific as possible.
+      placeholder: |
+        A new `npm run ...` command that ...
+        A new section in `reports/dashboard.md` that ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered other ways to solve this? What did you try?
+      placeholder: I tried editing config.json to ..., but it didn't work because ...
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      description: Confirm this feature can work within the project's constraints.
+      options:
+        - label: This feature does NOT require adding npm dependencies
+          required: true
+        - label: This feature does NOT require network calls
+          required: true
+        - label: This feature does NOT require writing outside the project root
+          required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: How would you categorize this feature?
+      options:
+        - New CLI command
+        - Dashboard / console improvement
+        - Report / analysis improvement
+        - Source / log format support
+        - Documentation
+        - CI / release / packaging
+        - Other
+    validations:
+      required: true
