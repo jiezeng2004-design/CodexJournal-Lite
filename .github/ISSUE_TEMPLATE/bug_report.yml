@@ -1,0 +1,104 @@
+name: Bug Report
+description: Report a bug in CodexJournal-Lite
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the form below.
+
+        **Privacy reminder:** Do NOT paste real Codex session content, API keys,
+        local Windows username paths (`C:\Users\yourname\`), or private task
+        summaries into this issue. The project's redaction layer runs on your
+        machine, not on GitHub.
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: e.g. Windows 11 23H2, Windows 10 22H2
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Output of `node --version`
+      placeholder: v20.11.0
+    validations:
+      required: true
+
+  - type: input
+    id: project-version
+    attributes:
+      label: CodexJournal-Lite version
+      description: Output of `node -e "console.log(require('./package.json').version)"`
+      placeholder: 0.6.1
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command that triggered the bug
+      description: e.g. `npm run archive`, `npm run verify`, `npm run summarize`
+      placeholder: npm run archive
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error output
+      description: |
+        Paste the full error output. Redact any personal paths or tokens before
+        pasting (replace your username with `<USER>` and any key with `<REDACTED>`).
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: |
+        1. ...
+        2. ...
+        3. See error
+      placeholder: |
+        1. Clone the repo
+        2. Run `npm run archive`
+        3. ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy-check
+    attributes:
+      label: Privacy confirmation
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have NOT included real Codex session content in this report
+          required: true
+        - label: I have NOT included API keys, tokens, or credentials in this report
+          required: true
+        - label: I have NOT included my local Windows username path in this report
+          required: true
+        - label: I have NOT included private task summaries or journal content in this report
+          required: true
+
+  - type: dropdown
+    id: involves-generated
+    attributes:
+      label: Does this bug involve generated personal output files?
+      description: |
+        e.g. `data/tasks.json`, `journal/*.md`, `reports/*.md`. If yes, do NOT
+        attach those files — describe the problem in words instead.
+      options:
+        - "No"
+        - "Yes (I have described the problem without attaching generated files)"
+    validations:
+      required: true

@@ -1,7 +1,11 @@
 # CodexJournal-Lite
 
-CodexJournal-Lite is a local-only CLI and localhost dashboard for turning
-Codex session files into a private work journal.
+[![CI](https://github.com/jiezeng2004-design/CodexJournal-Lite/actions/workflows/ci.yml/badge.svg)](https://github.com/jiezeng2004-design/CodexJournal-Lite/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
+[![Dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
+
+Turn scattered Codex sessions into a searchable local work memory — without uploading anything.
 
 It reads local Codex session logs, writes Markdown and JSON summaries inside
 this project directory, and does not upload data, call external services, or
@@ -106,8 +110,37 @@ npm.cmd run summarize     # build work-pattern reports from data/tasks.json
 npm.cmd run doctor        # check expected project/output structure
 npm.cmd run index:outputs # write reports/output-index.md and .json
 npm.cmd run package:local # create a local handoff zip in dist/
+npm.cmd run package:public # create a public release zip in dist/ (source + docs only)
 npm.cmd run verify:fresh  # verify a fresh clone with no personal archive data
 npm.cmd run verify        # full local verification gate
+```
+
+## Packaging for Release
+
+Two packaging commands serve different purposes:
+
+| Command | Output | Contents | Use for |
+| --- | --- | --- | --- |
+| `npm run package:local` | `dist/CodexJournal-Lite-v*-local.zip` | Source + your generated archive data | Personal backup / handoff |
+| `npm run package:public` | `dist/CodexJournal-Lite-v*-public.zip` | Source + docs + fixtures only | **GitHub Releases** |
+
+**`npm run package:local` is for local handoff only and may include your generated
+personal outputs (`data/tasks.json`, `journal/*.md`, `reports/*.md`, etc.).**
+**Do not upload local handoff packages to GitHub Releases.**
+
+Use `npm run package:public` for any public-facing release artifact — it
+excludes all generated personal data and contains only source code,
+documentation, and test fixtures.
+
+## npm Package
+
+npm package publishing is planned but not yet available. The project is
+currently distributed as a GitHub repository. Clone and run locally:
+
+```powershell
+git clone https://github.com/jiezeng2004-design/CodexJournal-Lite.git
+cd CodexJournal-Lite
+npm.cmd run verify:fresh
 ```
 
 ## Project Layout

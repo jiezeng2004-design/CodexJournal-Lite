@@ -3,6 +3,24 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.1] - CI and public release hardening
+
+### Added
+- GitHub Actions CI (`ci.yml`) for fresh clone verification on every push / PR.
+- Bug report and feature request issue templates (`.github/ISSUE_TEMPLATE/`).
+- Pull request template with privacy and verification checklist.
+- `npm run package:public` for GitHub Release-safe public archives.
+- README guidance that distinguishes public release packages from local handoff packages.
+- CI badge, license badge, Node version badge, and zero-dependency badge in README.
+
+### Fixed
+- Public release packaging (`package:public`) now excludes all generated personal outputs.
+- Source fixture tests (`test:sources`) no longer treat common CI, Docker, or system usernames (`root`, `ci`, `runner`, `runneradmin`, `node`, `default`, `user`, `administrator`, `public`) as private real usernames. This prevents false failures in GitHub Actions and container environments.
+
+### Security
+- Clarified security reporting guidance: explicitly ask reporters not to paste private Codex session content, API keys, local usernames, or generated journal outputs into public issues.
+- PR template requires confirmation that no private data or generated outputs are included.
+
 ## [0.6.0] - public re-release
 
 Re-published as a clean public repo with **no local data, no real
