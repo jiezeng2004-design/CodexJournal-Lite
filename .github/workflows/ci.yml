@@ -25,3 +25,9 @@ jobs:
 
       - name: Dry-run npm pack
         run: npm.cmd pack --dry-run
+
+      - name: Build public release package
+        run: npm.cmd run package:public
+
+      - name: Verify public release package
+        run: npm.cmd run verify:public-zip
