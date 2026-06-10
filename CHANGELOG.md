@@ -14,6 +14,7 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - CI badge, license badge, Node version badge, and zero-dependency badge in README.
 
 ### Fixed
+- `npm run check` no longer fails when `sessionsDir` does not exist on a fresh clone or CI runner. Missing sessions directory is now a WARN, not a FAIL. `check` only exits 1 for missing Node >= 18, unwritable output dirs, or severely broken config.
 - Public release packaging (`package:public`) now excludes all generated personal outputs.
 - Source fixture tests (`test:sources`) no longer treat common CI, Docker, or system usernames (`root`, `ci`, `runner`, `runneradmin`, `node`, `default`, `user`, `administrator`, `public`) as private real usernames. This prevents false failures in GitHub Actions and container environments.
 

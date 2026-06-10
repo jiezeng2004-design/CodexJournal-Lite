@@ -247,11 +247,14 @@ function writeEmptyOutputs(cfg) {
 function cmdCheck(cfg) {
   logHeader('check');
   const results = [];
+  const warnings = [];
   const nodeVer = process.versions.node;
   const major = parseInt(nodeVer.split('.')[0], 10);
   results.push({ name: 'node-version', ok: major >= 18, detail: nodeVer });
   const exists = utils.exists(cfg.sessionsDir);
-  results.push({ name: 'sessions-dir', ok: exists, detail: cfg.sessionsDir });
+  if (!exists) {
+    warnings.push({ name: 'sessions-dir', detail: cfg.sessionsDir });
+  }
   for (const d of [cfg.journalDir, cfg.dataDir, cfg.reportsDir]) {
     let writable = false;
     let detail = d;
@@ -266,11 +269,19 @@ function cmdCheck(cfg) {
     }
     results.push({ name: 'writable:' + path.basename(d), ok: writable, detail });
   }
+  if (exists) {
+    results.push({ name: 'sessions-dir', ok: true, detail: cfg.sessionsDir });
+  }
   let allOk = true;
+  let hasWarn = false;
   for (const r of results) {
     const tag = r.ok ? 'OK ' : 'FAIL';
     process.stdout.write('[' + tag + '] ' + r.name + ' :: ' + r.detail + '\n');
     if (!r.ok) allOk = false;
+  }
+  for (const w of warnings) {
+    hasWarn = true;
+    process.stdout.write('[WARN] ' + w.name + ' :: ' + w.detail + '\n');
   }
   if (!exists) {
     process.stdout.write('\nNOTE: sessions dir does not exist. archive will produce empty outputs.\n');
