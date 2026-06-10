@@ -3,6 +3,20 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.2] - Automated release packaging
+
+### Added
+- Automated GitHub Release workflow for version tags (`.github/workflows/release.yml`).
+- `npm run verify:public-zip` to validate public release ZIP archives.
+- SHA256 checksum generation for release ZIP files.
+- Release packaging documentation in README and usage guide.
+
+### Changed
+- CI now verifies public release packaging (`package:public` + `verify:public-zip`) in addition to fresh clone checks.
+
+### Security
+- Public release ZIP verification rejects `.git/`, `.env`, `node_modules/`, generated journals, task records, local reports, nested ZIP files, and other non-public outputs.
+
 ## [0.6.1] - CI and public release hardening
 
 ### Added

@@ -110,7 +110,44 @@ npm.cmd run package:local
 This writes `dist/CodexJournal-Lite-v<version>-local.zip`. The archive is
 intended for local handoff and is ignored by Git.
 
-## 8. Confirm Publish Hygiene
+## 8. Verify Public Release ZIP
+
+```powershell
+# Windows PowerShell, from the project root
+npm.cmd run package:public
+npm.cmd run verify:public-zip
+```
+
+The verification script checks:
+
+- ZIP file exists.
+- All paths use POSIX forward slashes.
+- Required public files are present (`src/index.js`, `package.json`, `README.md`,
+  `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `config.json`,
+  `.github/workflows/ci.yml`, `docs/privacy.md`, `console/server.js`, etc.).
+- No forbidden entries: `.git/`, `node_modules/`, `.env`, generated journal
+  entries, task records (`data/tasks.json`), reports (`reports/*.md`), cache
+  files (`data/index.json`), or nested ZIP files (`dist/*.zip`).
+
+## 9. Public Release Flow
+
+For maintainers:
+
+1. Update `package.json` version.
+2. Update `CHANGELOG.md`.
+3. Run local checks.
+4. Commit and push.
+5. Create and push a version tag.
+
+```powershell
+git tag v0.6.2
+git push origin v0.6.2
+```
+
+The release workflow will build, verify, and upload the public release archive
+automatically.
+
+## 10. Confirm Publish Hygiene
 
 Before committing or publishing:
 

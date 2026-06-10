@@ -1,6 +1,6 @@
 {
   "name": "codexjournal-lite",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Local-only CLI + dashboard that turns Codex session files into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
     "codexjournal-lite": "src/index.js"
@@ -20,6 +20,7 @@
     "index:outputs": "node src/index.js index-outputs",
     "package:local": "powershell -ExecutionPolicy Bypass -File scripts/package-local.ps1",
     "package:public": "powershell -ExecutionPolicy Bypass -File scripts/package-public.ps1",
+    "verify:public-zip": "powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1",
     "console": "node console/server.js"
   },
   "engines": {

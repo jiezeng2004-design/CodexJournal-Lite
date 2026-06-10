@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify fresh clone
+        run: npm.cmd run verify:fresh
+
+      - name: Run source fixture tests
+        run: npm.cmd run test:sources
+
+      - name: Check npm package contents
+        run: npm.cmd pack --dry-run
+
+      - name: Build public release package
+        run: npm.cmd run package:public
+
+      - name: Verify public release package
+        run: npm.cmd run verify:public-zip
+
+      - name: Compute release variables
+        id: vars
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = $pkg.version
+          $zip = "dist/CodexJournal-Lite-v$version-public.zip"
+          if (-not (Test-Path $zip)) {
+            throw "Missing release zip: $zip"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          "zip_name=CodexJournal-Lite-v$version-public.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Generate SHA256
+        shell: pwsh
+        run: |
+          $zip = "${{ steps.vars.outputs.zip }}"
+          $zipName = "${{ steps.vars.outputs.zip_name }}"
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zipName" | Out-File "$zip.sha256" -Encoding ascii
+          Get-Content "$zip.sha256"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CodexJournal-Lite v${{ steps.vars.outputs.version }}
+          tag_name: v${{ steps.vars.outputs.version }}
+          body: |
+            ## CodexJournal-Lite v${{ steps.vars.outputs.version }}
+
+            This release focuses on automated public release packaging.
+
+            ### Added
+
+            - Added automated GitHub Release workflow for version tags.
+            - Added public release ZIP verification.
+            - Added SHA256 checksum generation for release archives.
+
+            ### Security
+
+            - Public release assets are verified before upload.
+            - Release ZIP verification rejects `.git/`, `.env`, `node_modules/`, generated journals, task records, local reports, nested ZIP files, and other private outputs.
+
+            ### Assets
+
+            Download the public release archive:
+
+            `CodexJournal-Lite-v${{ steps.vars.outputs.version }}-public.zip`
+
+            Verify it with:
+
+            `CodexJournal-Lite-v${{ steps.vars.outputs.version }}-public.zip.sha256`
+          files: |
+            ${{ steps.vars.outputs.zip }}
+            ${{ steps.vars.outputs.zip }}.sha256

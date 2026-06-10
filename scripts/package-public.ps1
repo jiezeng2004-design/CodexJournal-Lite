@@ -291,4 +291,5 @@ if ($foundExcluded.Count -eq 0) {
 }
 
 Write-Host "[package-public] done. This zip is safe for GitHub Releases."
+Write-Host "[package-public] Next: run 'npm.cmd run verify:public-zip' to validate the archive."
 exit 0

@@ -110,9 +110,10 @@ npm.cmd run summarize     # build work-pattern reports from data/tasks.json
 npm.cmd run doctor        # check expected project/output structure
 npm.cmd run index:outputs # write reports/output-index.md and .json
 npm.cmd run package:local # create a local handoff zip in dist/
-npm.cmd run package:public # create a public release zip in dist/ (source + docs only)
-npm.cmd run verify:fresh  # verify a fresh clone with no personal archive data
-npm.cmd run verify        # full local verification gate
+npm.cmd run package:public  # create a public release zip in dist/ (source + docs only)
+npm.cmd run verify:public-zip # validate public release zip contents
+npm.cmd run verify:fresh   # verify a fresh clone with no personal archive data
+npm.cmd run verify         # full local verification gate
 ```
 
 ## Packaging for Release
@@ -131,6 +132,29 @@ personal outputs (`data/tasks.json`, `journal/*.md`, `reports/*.md`, etc.).**
 Use `npm run package:public` for any public-facing release artifact — it
 excludes all generated personal data and contains only source code,
 documentation, and test fixtures.
+
+## Release Packaging
+
+Public release packages are generated automatically by GitHub Actions when a
+version tag such as `v0.6.2` is pushed.
+
+The release workflow builds:
+
+- `CodexJournal-Lite-v<version>-public.zip`
+- `CodexJournal-Lite-v<version>-public.zip.sha256`
+
+The public ZIP is verified before upload. It must not contain `.git/`,
+`node_modules/`, `.env`, generated journals, task records, local reports, cache
+files, or nested ZIP files.
+
+For local manual verification:
+
+```powershell
+npm.cmd run package:public
+npm.cmd run verify:public-zip
+```
+
+Do not upload local handoff packages to GitHub Releases.
 
 ## npm Package
 
