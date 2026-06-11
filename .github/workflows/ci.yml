@@ -23,6 +23,9 @@ jobs:
       - name: Run offline fixture tests
         run: npm.cmd run test:sources
 
+      - name: Run sanitizer regression tests
+        run: npm.cmd run test:sanitize
+
       - name: Dry-run npm pack
         run: npm.cmd pack --dry-run
 

@@ -19,7 +19,8 @@ landing is intentionally high.
 ```powershell
 # from the project root
 npm run check        # sanity check
-npm run test:sources # offline unit tests for the IDEA probe
+npm run test:sanitize # offline sanitizer regression tests
+npm run test:sources  # offline unit tests for the IDEA probe
 npm run verify -Fresh  # full verify, skipping the "must have data" gate
 ```
 
