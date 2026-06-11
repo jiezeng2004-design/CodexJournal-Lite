@@ -1,6 +1,6 @@
 {
   "name": "codexjournal-lite",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Local-only CLI + dashboard that turns Codex session files into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
     "codexjournal-lite": "src/index.js"
