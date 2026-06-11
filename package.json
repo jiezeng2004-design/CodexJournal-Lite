@@ -15,6 +15,7 @@
     "verify:fresh": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -Fresh",
     "scan:sources": "node src/index.js scan-sources",
     "test:sources": "node src/sources/idea.test.js",
+    "test:sanitize": "node src/sanitize.test.js",
     "summarize": "node src/index.js summarize",
     "doctor": "node src/index.js doctor",
     "index:outputs": "node src/index.js index-outputs",
