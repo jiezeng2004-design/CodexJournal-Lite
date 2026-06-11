@@ -3,6 +3,22 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.3] - npm publishing and maintainer workflows
+
+### Added
+- Published `codexjournal-lite` to npm registry.
+- Support for `npx codexjournal-lite` one-command startup.
+- Support for `npm install -g codexjournal-lite`.
+- `ROADMAP.md` with v0.7–v1.0 development trajectory.
+- `docs/maintainer-workflows.md` — practical workflows for bugfix tracking, PR review, and release retrospectives.
+- npm version badge in README.
+- "Why It Matters" section in README — explains the problem CodexJournal-Lite solves.
+- "For Open Source Maintainers" section guiding OSS maintainers to relevant workflows.
+
+### Changed
+- `package.json` version bumped to `0.6.3` with `preferGlobal: true`.
+- README quick install section now shows `npx` and `npm install -g` as primary install methods.
+
 ## [0.6.2] - Automated release packaging
 
 ### Added

@@ -36,7 +36,7 @@ body:
     attributes:
       label: CodexJournal-Lite version
       description: Output of `node -e "console.log(require('./package.json').version)"`
-      placeholder: 0.6.1
+      placeholder: 0.6.3
     validations:
       required: true
 
