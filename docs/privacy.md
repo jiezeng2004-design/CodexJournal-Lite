@@ -53,6 +53,11 @@ outputs, including `journal/*.md`, `data/tasks.json`, `data/search.md`,
 `reports/dashboard.md`, report files, and the embedded task fields inside
 `data/index.json`.
 
+The redaction layer is covered by offline regression tests in
+`src/sanitize.test.js` (`npm run test:sanitize`). These tests confirm that
+common token, key, cookie, and path patterns are detected and replaced, without
+requiring real data or network access.
+
 Patterns currently redacted include:
 
 - OpenAI-style API keys such as `sk-...` and `sk-proj-...`
