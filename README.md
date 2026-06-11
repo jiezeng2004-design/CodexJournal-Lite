@@ -1,11 +1,37 @@
 # CodexJournal-Lite
 
+[![npm](https://img.shields.io/npm/v/codexjournal-lite)](https://npmjs.com/package/codexjournal-lite)
 [![CI](https://github.com/jiezeng2004-design/CodexJournal-Lite/actions/workflows/ci.yml/badge.svg)](https://github.com/jiezeng2004-design/CodexJournal-Lite/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
 [![Dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
 
 Turn scattered Codex sessions into a searchable local work memory — without uploading anything.
+
+Codex users generate hundreds of AI coding sessions. Each conversation contains
+debugging steps, code reviews, refactoring decisions, and release context.
+Without a local journal, this knowledge stays scattered in ephemeral log files
+that are hard to search, reference, or review.
+
+CodexJournal-Lite solves this: it reads local Codex session logs, writes
+structured Markdown and JSON summaries, and keeps everything on your machine.
+No upload. No telemetry. No third-party npm dependencies.
+
+## Quick Install
+
+```bash
+npx codexjournal-lite
+```
+
+Or install globally:
+
+```bash
+npm install -g codexjournal-lite
+codexjournal-lite
+```
+
+For the full local workflow, clone the repository and follow the
+[Install From A Fresh Clone](#install-from-a-fresh-clone) instructions.
 
 It reads local Codex session logs, writes Markdown and JSON summaries inside
 this project directory, and does not upload data, call external services, or
@@ -70,6 +96,15 @@ npm.cmd run verify:fresh
 
 There are no npm dependencies to install. The project uses Node.js built-ins
 and PowerShell scripts only.
+
+### One-Command Run (without cloning)
+
+```bash
+npx codexjournal-lite
+```
+
+This runs the archive command against your local `%USERPROFILE%/.codex/sessions`.
+Use `npx codexjournal-lite --help` to see all available commands.
 
 ## Quick Start
 
@@ -158,14 +193,21 @@ Do not upload local handoff packages to GitHub Releases.
 
 ## npm Package
 
-npm package publishing is planned but not yet available. The project is
-currently distributed as a GitHub repository. Clone and run locally:
+The `codexjournal-lite` package is available on npm:
 
-```powershell
-git clone https://github.com/jiezeng2004-design/CodexJournal-Lite.git
-cd CodexJournal-Lite
-npm.cmd run verify:fresh
+```bash
+npm install -g codexjournal-lite
+codexjournal-lite
 ```
+
+Or run directly without installing:
+
+```bash
+npx codexjournal-lite
+```
+
+The npm package includes the full CLI, dashboard, documentation, and test
+fixtures. It has zero runtime dependencies.
 
 ## Project Layout
 
@@ -194,6 +236,16 @@ npm.cmd run console
 
 The dashboard binds to `127.0.0.1` by default. It is intended for local use
 only and should not be exposed to a LAN or the public internet.
+
+## For Open Source Maintainers
+
+CodexJournal-Lite helps open-source maintainers keep a local, searchable log
+of AI-assisted coding sessions. Review past bugfix discussions, track which
+issues were explored, and search across sessions for decisions about a specific
+module or dependency — all offline and private.
+
+See [docs/maintainer-workflows.md](docs/maintainer-workflows.md) for practical
+workflows for bugfix tracking, PR review, and release retrospectives.
 
 ## Why This Project Is Open Source Ready
 
