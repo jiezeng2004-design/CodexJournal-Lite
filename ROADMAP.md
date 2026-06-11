@@ -3,12 +3,13 @@
 CodexJournal-Lite is a local-first, privacy-first AI coding session journal.
 This roadmap outlines the planned development trajectory.
 
-## v0.7 — npm Package & One-Command Startup
+## v0.7 — npm Package Hardening & One-Command Startup
 
-- Publish `codexjournal-lite` to npm registry
-- Support `npx codexjournal-lite` and `npm install -g codexjournal-lite`
+- Verify npm registry metadata, package contents, and `npx` startup docs
+- Add package smoke tests for `npx codexjournal-lite` and global install usage
 - Add global `codexjournal` shorthand command
 - Improve first-run experience with auto-config detection
+- Add a two-minute README demo GIF or release-hosted demo video
 
 ## v0.8 — Cross-Platform Support
 
