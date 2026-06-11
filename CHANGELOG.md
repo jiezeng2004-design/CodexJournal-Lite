@@ -3,6 +3,21 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.4] - Sanitizer regression coverage
+
+### Added
+- Added offline sanitizer regression tests (`npm run test:sanitize`) covering common API key, token, cookie, session, authorization header, GitHub PAT, Slack token, Windows username path, and JSON field redaction cases.
+- Added sanitizer regression tests to GitHub Actions CI.
+- Documented sanitizer regression coverage in contributor and privacy documentation.
+
+### Changed
+- `redactPath` now accepts the same redaction options as `redactText`, making path redaction tests deterministic in CI.
+- GitHub PAT redaction is now case-insensitive.
+
+### Security
+- Replaced real local username examples with fixture-style placeholders.
+- Strengthened regression coverage for local-only privacy guarantees.
+
 ## [0.6.3] - npm publishing and maintainer workflows
 
 ### Added
