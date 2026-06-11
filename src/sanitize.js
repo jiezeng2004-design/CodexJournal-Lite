@@ -57,7 +57,7 @@ const PATTERNS = [
   // GitHub-style personal access tokens (ghp_/gho_/ghu_/ghs_/ghr_)
   {
     name: 'github-pat',
-    re: /\bgh[pousr]_[A-Za-z0-9]{20,}/g,
+    re: /\bgh[pousr]_[A-Za-z0-9]{20,}/gi,
     replace: () => REDACTED
   },
   // Slack tokens
@@ -136,9 +136,9 @@ function redactText(input, opts) {
   return s;
 }
 
-function redactPath(p) {
+function redactPath(p, opts) {
   if (!p) return p;
-  return redactText(String(p));
+  return redactText(String(p), opts);
 }
 
 function redactObjectDeep(value, opts) {

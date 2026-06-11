@@ -32,7 +32,7 @@ A security issue is anything that causes:
   output file (`journal/*.md`, `data/*.json`, `data/*.md`, `reports/*.md`,
   `reports/*.json`, `dist/*.zip`).
 - A real local Windows username to appear unredacted in a generated output
-  file (e.g. `C:\Users\zengjie\` instead of `C:\Users\<USER>\`).
+  file (e.g. `C:\Users\local_user_name\` instead of `C:\Users\<USER>\`).
 - An unintended network call (the project is designed to be fully offline).
 - A write to a path outside the project root.
 - A modification to the user's source `.codex/sessions` files.
