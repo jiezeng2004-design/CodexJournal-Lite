@@ -18,6 +18,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 - `package.json` version bumped to `0.6.3` with `preferGlobal: true`.
 - README quick install section now shows `npx` and `npm install -g` as primary install methods.
+- README release packaging example now references the current `v0.6.3` tag.
+- `ROADMAP.md` now treats npm as an existing distribution path and focuses v0.7 on package hardening, smoke tests, and first-run improvements.
 
 ## [0.6.2] - Automated release packaging
 
