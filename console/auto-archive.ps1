@@ -16,8 +16,6 @@
 
 [CmdletBinding()]
 param(
-    [string]$Time = '23:55',
-    [string]$TaskName = 'CodexJournal-Lite Auto-Archive',
     [switch]$DryRun
 )
 
@@ -105,11 +103,12 @@ function Run-Step {
     }
     Push-Location -LiteralPath $ProjectRoot
     try {
-        & $npmCmd.Path @NpmArgs 2>&1 | ForEach-Object { Write-Log "  $_" }
+        $output = & $npmCmd.Path @NpmArgs 2>&1
+        $code = $LASTEXITCODE
+        foreach ($line in $output) { Write-Log "  $line" }
     } finally {
         Pop-Location
     }
-    $code = $LASTEXITCODE
     if ($code -ne 0) {
         Write-Log "step failed: $Label  exit=$code" 'ERROR'
     } else {

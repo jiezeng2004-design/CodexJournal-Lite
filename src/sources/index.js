@@ -20,6 +20,7 @@
 // `src/index.js` + `src/scanner.js` + `src/parser.js`.
 
 const codex = require('./codex');
+const claude = require('./claude');
 const idea = require('./idea');
 
 function getSourceByName(cfg, name) {
@@ -37,6 +38,7 @@ function isSourceEnabled(cfg, name) {
 
 module.exports = {
   codex,
+  claude,
   idea,
   getSourceByName,
   isSourceEnabled,

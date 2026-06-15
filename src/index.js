@@ -12,6 +12,7 @@ const writer = require('./writer');
 const sanitize = require('./sanitize');
 const sources = require('./sources');
 const analysis = require('./analysis');
+const ideaParser = require('./sources/idea-parser');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
@@ -201,6 +202,54 @@ function processAll(cfg, opts) {
   }
   saveIndex(cfg, onDisk);
 
+  // -------- IDEA AI Assistant parsing (enrich allTasks) -------------
+  const ideaEnabled = sources.isSourceEnabled(cfg, 'idea-ai');
+  let ideaTasks = [];
+  let ideaDirCount = 0;
+  let ideaFileCount = 0;
+  if (ideaEnabled) {
+    try {
+      const scanResult = sources.idea.scan(cfg);
+      const dirs = scanResult.discoveredLogDirs || [];
+      ideaDirCount = dirs.length;
+      for (const dir of dirs) {
+        let entries;
+        try { entries = require('fs').readdirSync(dir, { withFileTypes: true }); } catch (_) { continue; }
+        for (const ent of entries) {
+          if (!ent.isFile()) continue;
+          const lower = ent.name.toLowerCase();
+          if (!lower.includes('ai') && !lower.includes('assistant')) continue;
+          const fp = path.join(dir, ent.name);
+          try {
+            const result = ideaParser.parseLogFile(fp);
+            ideaFileCount++;
+            const existingIds = new Set();
+            for (const t of allTasks) existingIds.add(t.id);
+            for (const t of result.tasks) {
+              if (!existingIds.has(t.id)) {
+                allTasks.push(t);
+                existingIds.add(t.id);
+              }
+            }
+            ideaTasks = ideaTasks.concat(result.tasks);
+            if (result.errors.length > 0) {
+              for (const e of result.errors) appendError(cfg, 'idea-ai ' + (e.path || '') + ' ' + (e.err || ''));
+            }
+          } catch (err) {
+            appendError(cfg, 'idea-ai parse ' + fp + ' ' + (err.message || String(err)));
+          }
+        }
+      }
+    } catch (err) {
+      appendError(cfg, 'idea-ai scan ' + (err.message || String(err)));
+    }
+  }
+  if (ideaTasks.length > 0) {
+    process.stdout.write('idea-ai: ' + ideaTasks.length + ' task(s) from ' + ideaFileCount + ' file(s) in ' + ideaDirCount + ' dir(s)\n');
+  } else if (ideaEnabled) {
+    process.stdout.write('idea-ai: active, no AI log files found\n');
+  }
+
   const stats = writer.buildStats(allTasks, cfg);
   const journalFiles = writer.buildJournal(allTasks, cfg);
   const search = writer.buildSearch(allTasks, cfg);
@@ -218,6 +267,121 @@ function processAll(cfg, opts) {
   return { tasks: allTasks, stats, scanned: scan.files.length, missing: false, processed, reused };
 }
 
+
+// -------- preview: show what would be archived without writing ---
+function cmdPreview(cfg) {
+  logHeader('preview');
+  const scan = scanner.scanSessionsDir(cfg.sessionsDir);
+  if (scan.missing) {
+    process.stdout.write('sessions dir missing: ' + cfg.sessionsDir + '\n');
+    return 0;
+  }
+  const index = loadIndex(cfg);
+  const fileMap = index.files || {};
+  const newFiles = [];
+  const changedFiles = [];
+  let unchanged = 0;
+  for (const file of scan.files) {
+    const fp = utils.fileFingerprint(file.path, { size: file.size, mtimeMs: file.mtimeMs });
+    const prev = fileMap[file.path];
+    if (!prev) { newFiles.push(file); }
+    else if (prev.fingerprint !== fp) { changedFiles.push(file); }
+    else { unchanged++; }
+  }
+  process.stdout.write("sessions: " + scan.files.length + " total, " + newFiles.length + " new, " + changedFiles.length + " changed, " + unchanged + " unchanged\n");
+  if (newFiles.length === 0 && changedFiles.length === 0) {
+    process.stdout.write("nothing to archive.\n");
+    return 0;
+  }
+  var previewCount = Math.min(10, newFiles.length + changedFiles.length);
+  var previewFiles = newFiles.slice(0, 5).concat(changedFiles.slice(0, 5)).slice(0, previewCount);
+  for (var pi = 0; pi < previewFiles.length; pi++) {
+    var file = previewFiles[pi];
+    var label = newFiles.indexOf(file) >= 0 ? "NEW" : "CHANGED";
+    try {
+      var r = processFileRecord(file, cfg);
+      for (var ti = 0; ti < r.tasks.length; ti++) {
+        var t = r.tasks[ti];
+        var redacted = sanitizeTaskForExport(t);
+        process.stdout.write("  [" + label + "] " + sanitize.redactPath(file.path) + "\n");
+        process.stdout.write("    title: " + redacted.title + "\n");
+        process.stdout.write("    type:  " + redacted.taskType + "\n");
+        process.stdout.write("    msgs:  " + t.messageCount + "\n");
+      }
+    } catch (err) {
+      process.stdout.write("  [" + label + "] " + sanitize.redactPath(file.path) + " (parse error: " + (err.message || err) + ")\n");
+    }
+  }
+  var remaining = (newFiles.length + changedFiles.length) - previewCount;
+  if (remaining > 0) { process.stdout.write("  ... and " + remaining + " more session(s)\n"); }
+  process.stdout.write("\nRun `npm run archive` to archive.\n");
+  return 0;
+}
+
+
+// -------- changelog: compare fingerprint cache with current sessions ---
+function cmdChangelog(cfg) {
+  logHeader("changelog");
+  var scan = scanner.scanSessionsDir(cfg.sessionsDir);
+  if (scan.missing) { process.stdout.write("sessions dir missing: " + cfg.sessionsDir + "\n"); return 0; }
+  var index = loadIndex(cfg);
+  var fileMap = index.files || {};
+  var newFiles = [], changedFiles = [], unchanged = 0;
+  for (var fi = 0; fi < scan.files.length; fi++) {
+    var file = scan.files[fi];
+    var fp = utils.fileFingerprint(file.path, { size: file.size, mtimeMs: file.mtimeMs });
+    var prev = fileMap[file.path];
+    if (!prev) { newFiles.push(file); }
+    else if (prev.fingerprint !== fp) { changedFiles.push(file); }
+    else { unchanged++; }
+  }
+  var lines = [];
+  lines.push("# Changelog");
+  lines.push("");
+  lines.push("- generated: " + new Date().toISOString());
+  lines.push("- total sessions: " + scan.files.length);
+  lines.push("- unchanged: " + unchanged);
+  lines.push("- new: " + newFiles.length);
+  lines.push("- changed: " + changedFiles.length);
+  lines.push("");
+  if (newFiles.length === 0 && changedFiles.length === 0) {
+    lines.push("_No changes since last archive._");
+  } else {
+    function displayTask(file, label) {
+      try {
+        var r = processFileRecord(file, cfg);
+        for (var ti = 0; ti < r.tasks.length; ti++) {
+          var red = sanitizeTaskForExport(r.tasks[ti]);
+          lines.push("- **[" + label + "] " + red.title + "** (" + red.taskType + ", " + r.tasks[ti].messageCount + " msgs)");
+          lines.push("  - file: " + sanitize.redactPath(file.path));
+        }
+      } catch(err) {
+        lines.push("- _[" + label + "] parse error: " + (err.message || err) + "_");
+      }
+    }
+    lines.push("## New sessions");
+    lines.push("");
+    if (newFiles.length === 0) { lines.push("_(none)_"); }
+    else {
+      for (var ni = 0; ni < Math.min(newFiles.length, 10); ni++) { displayTask(newFiles[ni], "NEW"); }
+      if (newFiles.length > 10) { lines.push("- _... and " + (newFiles.length - 10) + " more_"); }
+    }
+    lines.push("");
+    lines.push("## Changed sessions");
+    lines.push("");
+    if (changedFiles.length === 0) { lines.push("_(none)_"); }
+    else {
+      for (var ci = 0; ci < Math.min(changedFiles.length, 5); ci++) { displayTask(changedFiles[ci], "CHANGED"); }
+      if (changedFiles.length > 5) { lines.push("- _... and " + (changedFiles.length - 5) + " more_"); }
+    }
+  }
+  lines.push("");
+  var md = lines.join("\n");
+  utils.writeTextSafe(path.join(cfg.reportsDir, "changelog.md"), md);
+  process.stdout.write("wrote: reports/changelog.md\n");
+  process.stdout.write("new=" + newFiles.length + " changed=" + changedFiles.length + " unchanged=" + unchanged + "\n");
+  return 0;
+}
 function sanitizeTaskForExport(t) {
   // Replace local Windows usernames in any path-like field, but keep
   // the original id, counts, timestamps, and metadata untouched.
@@ -604,6 +768,8 @@ function main() {
   const cmd = args[0] || 'archive';
   const cfg = cfgMod.loadConfig(PROJECT_ROOT);
   cfgMod.ensureOutputDirs(cfg);
+  // Load custom redaction patterns from config
+  if (cfg.redactPatterns) sanitize.setCustomPatterns(cfg.redactPatterns);
 
   switch (cmd) {
     case 'check':
@@ -618,6 +784,12 @@ function main() {
       break;
     case 'build-index':
       process.exit(cmdBuildIndex(cfg));
+      break;
+    case 'preview':
+      process.exit(cmdPreview(cfg));
+      break;
+    case 'changelog':
+      process.exit(cmdChangelog(cfg));
       break;
     case 'scan-sources':
       process.exit(cmdScanSources(cfg));

@@ -18,6 +18,13 @@
       "type": "idea",
       "enabled": true,
       "logDirs": []
+    },
+    {
+      "name": "claude-code",
+      "type": "claude",
+      "enabled": true,
+      "sessionsDir": ""
     }
-  ]
+  ],
+  "redactPatterns": []
 }

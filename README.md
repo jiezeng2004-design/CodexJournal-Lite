@@ -80,10 +80,14 @@ project overview.
 
 ## Requirements
 
-- Windows PowerShell for the bundled scripts.
 - Node.js 18 or newer.
+- Cross-platform: Node.js verify works on Windows, WSL, macOS, and Linux.
+- Windows PowerShell for the legacy verify.ps1 script (optional).
 - Codex session files under `%USERPROFILE%\.codex\sessions`, or a custom
   session path configured in `config.json`.
+
+On WSL / Linux, use `npm run verify` (Node.js-based). On Windows, both
+`npm run verify` (Node.js) and `npm run verify:ps1` (PowerShell) are available.
 
 ## Install From A Fresh Clone
 
@@ -137,6 +141,8 @@ Generated outputs stay inside the clone:
 # Windows PowerShell, from the project root
 npm.cmd run check         # verify Node, config, source dir, and output dirs
 npm.cmd run archive       # build journal/, data/tasks.json, data/search.md, reports/dashboard.md
+npm.cmd run preview       # show what would be archived (new/changed sessions) without writing
+npm.cmd run changelog     # compare sessions with cached fingerprints, write reports/changelog.md
 npm.cmd run build-index   # rebuild data/index.json only
 npm.cmd run stats         # regenerate data/stats.json
 npm.cmd run scan:sources  # inventory IDEA / JetBrains AI-related logs
@@ -148,7 +154,8 @@ npm.cmd run package:local # create a local handoff zip in dist/
 npm.cmd run package:public  # create a public release zip in dist/ (source + docs only)
 npm.cmd run verify:public-zip # validate public release zip contents
 npm.cmd run verify:fresh   # verify a fresh clone with no personal archive data
-npm.cmd run verify         # full local verification gate
+npm.cmd run verify         # cross-platform verification gate (Node.js; works on Windows / WSL / Linux)
+npm.cmd run verify:ps1     # Windows-only PowerShell verification (legacy)
 ```
 
 ## Packaging for Release
