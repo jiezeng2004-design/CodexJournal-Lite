@@ -13,7 +13,8 @@
 [CmdletBinding()]
 param(
     [string]$Time = '23:55',
-    [string]$TaskName = 'CodexJournal-Lite Auto-Archive'
+    [string]$TaskName = 'CodexJournal-Lite Auto-Archive',
+    [switch]$StartNow
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,7 +50,7 @@ $trigger = New-ScheduledTaskTrigger -Daily -At $Time
 
 $principal = New-ScheduledTaskPrincipal `
     -UserId $env:USERNAME `
-    -LogonType S4U `
+    -LogonType InteractiveToken `
     -RunLevel Limited
 
 $settings = New-ScheduledTaskSettingsSet `
@@ -88,5 +89,13 @@ Write-Host "  - Run now: Start-ScheduledTask -TaskName '$TaskName'"
 Write-Host "  - Disable: Disable-ScheduledTask -TaskName '$TaskName'"
 Write-Host "  - Remove:  Unregister-ScheduledTask -TaskName '$TaskName' -Confirm:`$false"
 Write-Host ""
+if ($StartNow) {
+    try {
+        Start-ScheduledTask -TaskName $TaskName
+        Write-Host "Started task immediately (StartNow)." -ForegroundColor Cyan
+    } catch {
+        Write-Host "WARNING: Failed to start task: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
 Write-Host "Log goes to:  $ProjectRoot\reports\auto-archive.log"
 Write-Host "On failure, a Windows toast will pop up. On success, the script is silent."
