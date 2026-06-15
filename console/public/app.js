@@ -254,6 +254,58 @@ function renderHBars(host, items) {
   host.appendChild(svg);
 }
 
+
+function renderHeatmap(host, byDay, weeks) {
+  clearHost(host);
+  if (!byDay || !Object.keys(byDay).length) { host.textContent = '暂无数据'; return; }
+  var today = new Date(); weeks = weeks || 12;
+  var endPad = 6; var start = new Date(today.getTime() - (weeks * 7 + endPad) * 86400000);
+  var counts = {date: 0}, maxCount = 1;
+  for (var d in byDay) {
+    if (byDay.hasOwnProperty(d) && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      counts[d] = byDay[d]; if (byDay[d] > maxCount) maxCount = byDay[d];
+    }
+  }
+  var cellSize = 12, cellGap = 3, padL = 36, padT = 12;
+  var cols = weeks * 7 + 1;
+  var hostW = padL + cols * (cellSize + cellGap);
+  var hostH = padT + 7 * (cellSize + cellGap) + 16;
+  var svg = svgEl('svg', { viewBox: '0 0 ' + hostW + ' ' + hostH, preserveAspectRatio: 'xMidYMid meet' });
+  // Month labels
+  var monthLabels = {};
+  var d = new Date(start);
+  for (var i = 0; i < weeks; i++) { monthLabels[d.getMonth()] = i; d.setDate(d.getDate() + 7); }
+  var mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (var m in monthLabels) {
+    var x = padL + monthLabels[m] * (cellSize + cellGap) + (cellSize + cellGap) / 2;
+    var lbl = svgEl('text', { class: 'heatmap-label', x: x, y: padT - 4 });
+    lbl.textContent = mn[parseInt(m)]; svg.appendChild(lbl);
+  }
+  // Weekday labels (Mon, Wed, Fri)
+  var wdl = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+  for (var wd = 0; wd < 7; wd++) {
+    if (!wdl[wd]) continue;
+    var y = padT + wd * (cellSize + cellGap) + cellSize / 2 + 4;
+    var lbl = svgEl('text', { class: 'heatmap-y-label', x: padL - 4, y: y });
+    lbl.textContent = wdl[wd]; svg.appendChild(lbl);
+  }
+  // Cells
+  var ptr = new Date(start);
+  for (var col = 0; col < cols; col++) {
+    for (var row = 0; row < 7; row++) {
+      var ds = ptr.getFullYear() + '-' + String(ptr.getMonth() + 1).padStart(2,'0') + '-' + String(ptr.getDate()).padStart(2,'0');
+      var count = counts[ds] || 0;
+      var x = padL + col * (cellSize + cellGap);
+      var y = padT + row * (cellSize + cellGap);
+      var opacity = count > 0 ? 0.2 + Math.min(count / maxCount, 1) * 0.8 : 0;
+      var cell = svgEl('rect', { class: 'heatmap-cell', x: x, y: y, width: cellSize, height: cellSize, rx: 2, fill: 'currentColor', opacity: opacity });
+      var t = svgEl('title'); t.textContent = ds + ' · ' + count + ' tasks'; cell.appendChild(t);
+      svg.appendChild(cell);
+      ptr.setDate(ptr.getDate() + 1);
+    }
+  }
+  host.appendChild(svg);
+}
 const TYPE_COLORS = {
   codex:        '#2dd4bf',
   thesis:       '#60a5fa',
@@ -298,7 +350,7 @@ async function loadDashboard() {
       setText($('#c-doctor-sub'), d.doctor.pass + ' / ' + (d.doctor.pass + d.doctor.fail) + ' 项通过');
     } else { setText($('#c-doctor'), '?'); }
 
-    renderDailyBars($('#daily-chart'), d.byDay || {}, 14);
+    renderHeatmap($('#daily-chart'), d.byDay || {}, 12);
     setText($('#daily-meta'), '共 ' + Object.keys(d.byDay || {}).length + ' 天');
 
     const typeItems = Object.entries(d.byType || {})

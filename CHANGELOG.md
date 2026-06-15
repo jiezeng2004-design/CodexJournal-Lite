@@ -3,6 +3,29 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.5] - cross-platform verify and source parsing preview
+
+### Added
+- Cross-platform Node.js verification entrypoint: `npm run verify` and `npm run verify:fresh` now work outside Windows PowerShell.
+- Windows-only legacy verification remains available as `npm run verify:ps1`.
+- `npm run preview` to show new or changed Codex sessions without writing archive outputs.
+- `npm run changelog` to write a local `reports/changelog.md` summary from session fingerprint changes.
+- IDEA AI Assistant log parser with offline fixture coverage.
+- Claude Code source registry stub and read-only probe scaffold for future archive integration.
+- Optional `redactPatterns` config hook for local custom redaction rules.
+
+### Changed
+- Dashboard activity chart now uses a compact heatmap view.
+- Dashboard tabs use icon-first controls for denser navigation.
+- Auto-archive logging captures command output before reading `$LASTEXITCODE`.
+- Scheduled task installer uses `InteractiveToken` and supports `-StartNow`.
+- README now documents the cross-platform verify path and new preview/changelog commands.
+
+### Fixed
+- Removed a CSS syntax error in the KPI card hover block.
+- Corrected IDEA session-end matching to use whitespace regexes instead of literal `\s`.
+- Cleaned up `src/verify.js` helper formatting so bundled verification remains parse-safe.
+
 ## [0.6.4] - Sanitizer regression coverage
 
 ### Added
@@ -24,17 +47,18 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - Published `codexjournal-lite` to npm registry.
 - Support for `npx codexjournal-lite` one-command startup.
 - Support for `npm install -g codexjournal-lite`.
-- `ROADMAP.md` with v0.7–v1.0 development trajectory.
-- `docs/maintainer-workflows.md` — practical workflows for bugfix tracking, PR review, and release retrospectives.
+- `ROADMAP.md` with v0.7-v1.0 development trajectory.
+- `docs/maintainer-workflows.md` - practical workflows for bugfix tracking, PR review, and release retrospectives.
 - npm version badge in README.
-- "Why It Matters" section in README — explains the problem CodexJournal-Lite solves.
+- "Why It Matters" section in README - explains the problem CodexJournal-Lite solves.
 - "For Open Source Maintainers" section guiding OSS maintainers to relevant workflows.
 
 ### Changed
 - `package.json` version bumped to `0.6.3` with `preferGlobal: true`.
 - README quick install section now shows `npx` and `npm install -g` as primary install methods.
 - README release packaging example now references the current `v0.6.3` tag.
-- `ROADMAP.md` now treats npm as an existing distribution path and focuses v0.7 on package hardening, smoke tests, and first-run improvements.
+- `ROADMAP.md` now treats npm as an existing distribution path and focuses
+  v0.7 on package hardening, smoke tests, and first-run improvements.
 
 ## [0.6.2] - Automated release packaging
 
