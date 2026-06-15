@@ -8,6 +8,8 @@ const path = require('path');
 
 const REDACTED = '<REDACTED>';
 const USER_PLACEHOLDER = '<USER>';
+// Custom patterns loaded from config.json
+let customPatterns = [];
 
 // Order matters: do the more specific patterns first, then the catch-alls.
 
@@ -99,6 +101,10 @@ function redactText(input, opts) {
   for (const p of PATTERNS) {
     s = s.replace(p.re, p.replace);
   }
+  // Apply custom patterns from config
+  for (const cp of customPatterns) {
+    try { s = s.replace(cp.re, cp.replace); } catch (_) {}
+  }
   // Windows path username
   const users = (opts && opts.localUserNames) || getLocalUserNames();
   for (const u of users) {
@@ -180,10 +186,27 @@ function redactObjectDeep(value, opts) {
   return walk(value);
 }
 
+function setCustomPatterns(patterns) {
+  customPatterns = [];
+  if (!Array.isArray(patterns)) return;
+  for (const p of patterns) {
+    if (p && p.pattern && p.replacement) {
+      try {
+        customPatterns.push({
+          name: p.name || 'custom',
+          re: new RegExp(p.pattern, 'gi'),
+          replace: typeof p.replacement === 'string' ? () => p.replacement : String(p.replacement)
+        });
+      } catch (_) {}
+    }
+  }
+}
+
 module.exports = {
   redactText,
   redactPath,
   redactObjectDeep,
+  setCustomPatterns,
   REDACTED,
   USER_PLACEHOLDER,
   getLocalUserNames

@@ -1,6 +1,6 @@
 {
   "name": "codexjournal-lite",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Local-only CLI + dashboard that turns Codex session files into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
     "codexjournal-lite": "src/index.js"
@@ -10,11 +10,14 @@
     "archive": "node src/index.js archive",
     "build-index": "node src/index.js build-index",
     "stats": "node src/index.js stats",
+    "preview": "node src/index.js preview",
+    "changelog": "node src/index.js changelog",
     "check": "node src/index.js check",
-    "verify": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
-    "verify:fresh": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -Fresh",
+    "verify": "node src/verify.js",
+    "verify:fresh": "node src/verify.js --fresh",
+    "verify:ps1": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
     "scan:sources": "node src/index.js scan-sources",
-    "test:sources": "node src/sources/idea.test.js",
+    "test:sources": "node src/sources/idea.test.js && node src/sources/idea-parser.test.js",
     "test:sanitize": "node src/sanitize.test.js",
     "summarize": "node src/index.js summarize",
     "doctor": "node src/index.js doctor",

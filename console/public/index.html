@@ -26,6 +26,7 @@
 <header class="topbar">
   <div class="brand">
     <span class="logo">CJ</span>
+    <span class="logo-small">c</span>
     <div>
       <h1>CodexJournal-Lite</h1>
       <p class="muted small" id="brand-meta">Loading...</p>
@@ -40,17 +41,17 @@
 </header>
 
 <nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="dashboard" role="tab"><span>Dashboard</span></button>
-  <button class="tab" data-tab="actions" role="tab"><span>Actions</span></button>
-  <button class="tab" data-tab="journal" role="tab"><span>Journal</span></button>
-  <button class="tab" data-tab="reports" role="tab"><span>Reports</span></button>
-  <button class="tab" data-tab="data" role="tab"><span>Data</span></button>
-  <button class="tab" data-tab="dist" role="tab"><span>Dist</span></button>
-  <button class="tab" data-tab="verify" role="tab"><span>Verify</span></button>
+  <button class="tab active" data-tab="dashboard" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg><span>Dashboard</span></button>
+  <button class="tab" data-tab="actions" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M4 2.5L12 8L4 13.5V2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg><span>Actions</span></button>
+  <button class="tab" data-tab="journal" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M3 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H3V2Z" stroke="currentColor" stroke-width="1.3"/><line x1="5.5" y1="6" x2="10.5" y2="6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="5.5" y1="9" x2="9.5" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Journal</span></button>
+  <button class="tab" data-tab="reports" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M4 1.5H10L13 4.5V13C13 14.1046 12.1046 15 11 15H4C2.89543 15 2 14.1046 2 13V3C2 1.89543 2.89543 1.5 4 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="4.5" y1="6" x2="10.5" y2="6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="4.5" y1="9" x2="9.5" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Reports</span></button>
+  <button class="tab" data-tab="data" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4" rx="6" ry="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 4V8C2 9.38071 4.68629 10.5 8 10.5C11.3137 10.5 14 9.38071 14 8V4" stroke="currentColor" stroke-width="1.3"/><path d="M2 8V12C2 13.3807 4.68629 14.5 8 14.5C11.3137 14.5 14 13.3807 14 12V8" stroke="currentColor" stroke-width="1.3"/></svg><span>Data</span></button>
+  <button class="tab" data-tab="dist" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M2 5.5L8 2L14 5.5V10.5L8 14L2 10.5V5.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="9" x2="8" y2="14" stroke="currentColor" stroke-width="1.3"/><line x1="2" y1="5.5" x2="2" y2="10.5" stroke="currentColor" stroke-width="1.3"/><line x1="14" y1="5.5" x2="14" y2="10.5" stroke="currentColor" stroke-width="1.3"/><line x1="2" y1="8" x2="8" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="8" y1="10" x2="14" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Dist</span></button>
+  <button class="tab" data-tab="verify" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 8L7 9.5L10.5 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Verify</span></button>
   <span class="tabs-spacer"></span>
-  <button class="tab ghost" id="theme-toggle" title="Toggle theme"><span id="theme-icon">Theme</span></button>
-  <button class="tab ghost" id="search-toggle" title="Search (Ctrl+K)">Search</button>
-  <button class="tab ghost" id="refresh-all" title="Refresh">Refresh</button>
+  <button class="tab ghost" id="theme-toggle" title="Toggle theme"><svg class="ico" id="theme-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor"/><path d="M8 1V2M8 14V15M1 8H2M14 8H15M2.5 2.5L3.5 3.5M12.5 12.5L13.5 13.5M2.5 13.5L3.5 12.5M12.5 3.5L13.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+  <button class="tab ghost" id="search-toggle" title="Search (Ctrl+K)"><svg class="ico" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+  <button class="tab ghost" id="refresh-all" title="Refresh"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M2.5 8C2.5 4.96243 4.96243 2.5 8 2.5C10.2183 2.5 12.1178 3.78333 13.0649 5.60707" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13.5 8C13.5 11.0376 11.0376 13.5 8 13.5C5.89289 13.5 4.07367 12.3333 3.06695 10.6864" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M10.5 5.5L13.5 5.5L13.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.5L2.5 10.5L2.5 13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 </nav>
 
 <div id="search-overlay" class="search-overlay hidden" role="dialog" aria-label="Global search">
