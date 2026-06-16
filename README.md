@@ -78,16 +78,37 @@ See [docs/usage.md](docs/usage.md) for a step-by-step usage guide.
 See [docs/project-summary.md](docs/project-summary.md) for a reviewer-friendly
 project overview.
 
+## Real-World Use Case
+
+CodexJournal-Lite was built from a real maintainer workflow. As an active user of
+AI coding assistants (Codex, OpenCode, Claude Code, Gemini CLI), I generate
+hundreds of sessions per week — debugging steps, code reviews, refactoring
+decisions, release context, and exploratory analysis. Before CodexJournal-Lite,
+this knowledge was scattered across ephemeral log files that were impractical
+to search or reference.
+
+I use this tool daily to:
+
+- **Trace past bugfix decisions**: When a regression appears, I search past
+  sessions for the original debugging discussion instead of rediscovering the
+  same root cause.
+- **Review release history**: Before cutting a release, I scan the journal for
+  which features, fixes, and refactors were discussed across multiple sessions.
+- **Keep context across projects**: I maintain separate journals for different
+  repositories (open-source tools, thesis research, web novel backend) by
+  pointing CodexJournal-Lite at different session directories.
+- **Avoid repeating work**: The search index lets me find "did I already
+  explore approach X for problem Y?" across hundreds of past sessions.
+
+The project stays local, private, and dependency-free by design — because it
+was created to solve a real daily problem, not as a demonstration project.
+
 ## Requirements
 
+- Windows PowerShell for the bundled scripts.
 - Node.js 18 or newer.
-- Cross-platform: Node.js verify works on Windows, WSL, macOS, and Linux.
-- Windows PowerShell for the legacy verify.ps1 script (optional).
 - Codex session files under `%USERPROFILE%\.codex\sessions`, or a custom
   session path configured in `config.json`.
-
-On WSL / Linux, use `npm run verify` (Node.js-based). On Windows, both
-`npm run verify` (Node.js) and `npm run verify:ps1` (PowerShell) are available.
 
 ## Install From A Fresh Clone
 
@@ -141,8 +162,6 @@ Generated outputs stay inside the clone:
 # Windows PowerShell, from the project root
 npm.cmd run check         # verify Node, config, source dir, and output dirs
 npm.cmd run archive       # build journal/, data/tasks.json, data/search.md, reports/dashboard.md
-npm.cmd run preview       # show what would be archived (new/changed sessions) without writing
-npm.cmd run changelog     # compare sessions with cached fingerprints, write reports/changelog.md
 npm.cmd run build-index   # rebuild data/index.json only
 npm.cmd run stats         # regenerate data/stats.json
 npm.cmd run scan:sources  # inventory IDEA / JetBrains AI-related logs
@@ -154,8 +173,7 @@ npm.cmd run package:local # create a local handoff zip in dist/
 npm.cmd run package:public  # create a public release zip in dist/ (source + docs only)
 npm.cmd run verify:public-zip # validate public release zip contents
 npm.cmd run verify:fresh   # verify a fresh clone with no personal archive data
-npm.cmd run verify         # cross-platform verification gate (Node.js; works on Windows / WSL / Linux)
-npm.cmd run verify:ps1     # Windows-only PowerShell verification (legacy)
+npm.cmd run verify         # full local verification gate
 ```
 
 ## Packaging for Release
