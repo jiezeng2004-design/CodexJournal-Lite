@@ -3,6 +3,12 @@
 All notable changes to **CodexJournal-Lite** are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+- `docs/open-source-application.md` with a reviewer-friendly evidence summary
+  for open-source maintainer support applications.
+
 ## [0.6.5] - cross-platform verify and source parsing preview
 
 ### Added
