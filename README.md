@@ -254,6 +254,10 @@ module or dependency — all offline and private.
 See [docs/maintainer-workflows.md](docs/maintainer-workflows.md) for practical
 workflows for bugfix tracking, PR review, and release retrospectives.
 
+For program reviewers, [docs/open-source-application.md](docs/open-source-application.md)
+summarizes the public evidence: repository status, npm package, release
+verification, privacy boundary, and maintainer support rationale.
+
 ## Why This Project Is Open Source Ready
 
 - Source, scripts, dashboard assets, docs, fixtures, and license files are
