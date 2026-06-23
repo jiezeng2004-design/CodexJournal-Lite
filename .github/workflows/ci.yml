@@ -15,35 +15,48 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (Windows)
-    runs-on: windows-latest
+    name: Verify (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20, 22]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
 
       - name: Verify fresh clone
-        run: npm.cmd run verify:fresh
+        shell: bash
+        run: npm run verify:fresh
 
-      - name: Run offline fixture tests
-        run: npm.cmd run test:sources
+      - name: Run complete test suite
+        shell: bash
+        run: npm test
 
-      - name: Run sanitizer regression tests
-        run: npm.cmd run test:sanitize
+      - name: Smoke test
+        shell: bash
+        run: npm run smoke
 
       - name: Dry-run npm pack
-        run: npm.cmd pack --dry-run
+        shell: bash
+        run: npm pack --dry-run
 
       - name: Build public release package
-        run: npm.cmd run package:public
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: npm run package:public
 
       - name: Verify public release package
-        run: npm.cmd run verify:public-zip
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: npm run verify:public-zip
 
   secrets:
     name: Secret scan
@@ -51,7 +64,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout full history
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 

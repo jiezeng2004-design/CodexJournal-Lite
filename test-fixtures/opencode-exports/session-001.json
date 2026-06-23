@@ -1,0 +1,12 @@
+{
+  "id": "opencode-001",
+  "createdAt": "2026-01-17T09:00:00.000Z",
+  "updatedAt": "2026-01-17T09:05:00.000Z",
+  "cwd": "/home/test/opencode-project",
+  "messages": [
+    {"role": "user", "content": "Create a REST API endpoint for user registration", "createdAt": "2026-01-17T09:00:00.000Z"},
+    {"role": "assistant", "content": "I will create a REST API endpoint with input validation and password hashing.", "createdAt": "2026-01-17T09:00:30.000Z"},
+    {"role": "user", "content": "Make sure to use JWT for authentication", "createdAt": "2026-01-17T09:02:00.000Z"},
+    {"role": "assistant", "content": "I have added JWT token generation and verification to the registration endpoint.", "createdAt": "2026-01-17T09:03:00.000Z"}
+  ]
+}

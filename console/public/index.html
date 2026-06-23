@@ -33,7 +33,7 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="meta-pill" id="server-version">v0.6.0</span>
+    <span class="meta-pill" id="server-version">-</span>
     <span class="meta-pill" id="server-pill">127.0.0.1:7777</span>
     <span class="meta-pill good" id="server-health"><span class="dot"></span> Running</span>
     <span class="meta-pill muted" id="server-time">-</span>
@@ -48,6 +48,7 @@
   <button class="tab" data-tab="data" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4" rx="6" ry="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 4V8C2 9.38071 4.68629 10.5 8 10.5C11.3137 10.5 14 9.38071 14 8V4" stroke="currentColor" stroke-width="1.3"/><path d="M2 8V12C2 13.3807 4.68629 14.5 8 14.5C11.3137 14.5 14 13.3807 14 12V8" stroke="currentColor" stroke-width="1.3"/></svg><span>Data</span></button>
   <button class="tab" data-tab="dist" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><path d="M2 5.5L8 2L14 5.5V10.5L8 14L2 10.5V5.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="9" x2="8" y2="14" stroke="currentColor" stroke-width="1.3"/><line x1="2" y1="5.5" x2="2" y2="10.5" stroke="currentColor" stroke-width="1.3"/><line x1="14" y1="5.5" x2="14" y2="10.5" stroke="currentColor" stroke-width="1.3"/><line x1="2" y1="8" x2="8" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="8" y1="10" x2="14" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Dist</span></button>
   <button class="tab" data-tab="verify" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 8L7 9.5L10.5 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Verify</span></button>
+  <button class="tab" data-tab="sources" role="tab"><svg class="ico" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="4" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 5L7 11M10.5 5L9 11M6 4h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span>Sources</span></button>
   <span class="tabs-spacer"></span>
   <button class="tab ghost" id="theme-toggle" title="Toggle theme"><svg class="ico" id="theme-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor"/><path d="M8 1V2M8 14V15M1 8H2M14 8H15M2.5 2.5L3.5 3.5M12.5 12.5L13.5 13.5M2.5 13.5L3.5 12.5M12.5 3.5L13.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
   <button class="tab ghost" id="search-toggle" title="Search (Ctrl+K)"><svg class="ico" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
@@ -58,14 +59,65 @@
   <div class="search-backdrop" id="search-backdrop"></div>
   <div class="search-panel">
     <div class="search-input-row">
-      <input type="search" id="search-input" placeholder="Search tasks, reports, keywords... (Ctrl+K)" autocomplete="off" />
+      <input type="search" id="search-input" placeholder='Search... (source:codex type:document "REST API")' autocomplete="off" />
+      <button class="search-help-btn" id="search-help-toggle" title="搜索语法帮助 / Search syntax help">?</button>
       <span class="muted small" id="search-hint">Esc closes</span>
+    </div>
+    <div class="search-chips" id="search-chips">
+      <span class="chip-group-label">时间</span>
+      <button class="chip" data-chip-time="week">本周</button>
+      <button class="chip" data-chip-time="month">本月</button>
+      <span class="chip-group-label">来源</span>
+      <button class="chip" data-chip-source="Codex">Codex</button>
+      <button class="chip" data-chip-source="Claude">Claude</button>
+      <button class="chip" data-chip-source="Gemini">Gemini</button>
+      <button class="chip" data-chip-source="OpenCode">OpenCode</button>
+      <button class="chip chip-clear" id="search-chips-clear">清除筛选</button>
+    </div>
+    <div class="search-help hidden" id="search-help">
+      <div class="search-help-title">搜索语法 / Search Syntax</div>
+      <ul class="search-help-list">
+        <li><code>source:codex</code> — 按来源筛选 / filter by source</li>
+        <li><code>type:document</code> — 按类型筛选 / filter by type</li>
+        <li><code>date:2024-06-01</code> — 按日期筛选 / filter by date</li>
+        <li><code>from:2024-06-01</code> — 起始日期 / start date</li>
+        <li><code>to:2024-06-30</code> — 结束日期 / end date</li>
+        <li><code>title:REST</code> — 按标题筛选 / filter by title</li>
+        <li><code>keyword:auth</code> — 按关键词筛选 / filter by keyword</li>
+        <li><code>path:src</code> — 按路径筛选 / filter by path</li>
+        <li><code>"exact phrase"</code> — 精确短语匹配 / exact phrase match</li>
+        <li><code>-keyword</code> — 排除包含该词的结果 / exclude term</li>
+      </ul>
+      <p class="muted small">多个条件用空格分隔，例如：<code>source:codex type:document "REST API"</code></p>
+    </div>
+    <div class="search-filters">
+      <label class="search-filter"><span class="sf-label">Type</span>
+        <select id="search-filter-type"><option value="">All</option></select>
+      </label>
+      <label class="search-filter"><span class="sf-label">Source</span>
+        <select id="search-filter-source"><option value="">All</option></select>
+      </label>
+      <label class="search-filter"><span class="sf-label">From</span>
+        <input type="date" id="search-filter-from" />
+      </label>
+      <label class="search-filter"><span class="sf-label">To</span>
+        <input type="date" id="search-filter-to" />
+      </label>
+      <button class="btn ghost" id="search-filter-clear" title="Clear filters">Clear</button>
+    </div>
+    <div class="search-saved" id="search-saved">
+      <div class="search-saved-head">
+        <span class="search-saved-title">已保存搜索 / Saved Searches</span>
+        <button class="btn ghost" id="search-save-current" title="保存当前搜索">保存当前</button>
+      </div>
+      <div id="search-saved-list" class="search-saved-list"></div>
     </div>
     <div class="search-results" id="search-results">
       <p class="muted small" style="padding:18px;text-align:center">Type to search tasks, journal files, and reports.</p>
     </div>
     <div class="search-footer muted small">
       <span id="search-summary">Ready</span>
+      <span class="search-hint-text">Fields: source: type: date: from: to: title: keyword: path: &nbsp;|&nbsp; Use - to exclude &nbsp;|&nbsp; "quotes" for phrases</span>
       <span style="margin-left:auto">Ctrl+K toggles search</span>
     </div>
   </div>
@@ -78,16 +130,36 @@
       <div class="kpi-card"><div class="kpi-label">Active Days</div><div class="kpi-value" id="c-days">-</div><div class="kpi-sub" id="c-journals-sub">-</div></div>
       <div class="kpi-card"><div class="kpi-label">Doctor</div><div class="kpi-value" id="c-doctor">-</div><div class="kpi-sub" id="c-doctor-sub">environment checks</div></div>
       <div class="kpi-card"><div class="kpi-label">Artifacts</div><div class="kpi-value" id="c-dist">-</div><div class="kpi-sub" id="c-dist-sub">local zip packages</div></div>
+      <div class="kpi-card"><div class="kpi-label">本周新增 / This Week</div><div class="kpi-value" id="c-week">-</div><div class="kpi-sub" id="c-week-sub">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">连续活跃 / Streak</div><div class="kpi-value" id="c-streak">-</div><div class="kpi-sub" id="c-streak-sub">-</div></div>
+      <div class="kpi-card kpi-card-chart"><div class="kpi-label">Sources 分布</div><div class="kpi-mini-bars" id="c-sources"><span class="muted small">-</span></div></div>
+      <div class="kpi-card"><div class="kpi-label">Verify 状态</div><div class="kpi-value" id="c-verify">-</div><div class="kpi-sub" id="c-verify-sub">-</div></div>
     </div>
 
     <div class="grid main">
-      <div class="card chart-card"><div class="card-head"><h2>Daily Activity</h2><span class="muted small" id="daily-meta">Recent days</span></div><div id="daily-chart" class="chart-host"></div></div>
+      <div class="card chart-card"><div class="card-head"><h2>Daily Activity</h2><div class="heatmap-controls"><select id="heatmap-weeks" class="select-sm"><option value="12">12 weeks</option><option value="26">26 weeks</option><option value="52">52 weeks</option></select><span class="muted small" id="daily-meta">Recent days</span></div></div><div id="daily-chart" class="chart-host"></div></div>
       <div class="card chart-card"><div class="card-head"><h2>Task Types</h2><span class="muted small" id="type-meta">-</span></div><div id="type-chart" class="chart-host"></div></div>
     </div>
 
     <div class="grid main">
       <div class="card chart-card"><div class="card-head"><h2>Top Keywords</h2><span class="muted small">Local archive</span></div><div id="kw-chart" class="chart-host"></div></div>
-      <div class="card activity-card"><div class="card-head"><h2>Recent Activity</h2><span class="muted small" id="recent-count">-</span></div><ol id="recent-tasks" class="recent-feed"></ol></div>
+      <div class="card activity-card"><div class="card-head"><h2>Recent Activity</h2><span class="muted small" id="recent-count">-</span></div>
+        <div class="recent-filters">
+          <label class="recent-filter"><span class="rf-label">Source</span>
+            <select id="recent-source-filter"><option value="">All</option><option value="Codex">Codex</option><option value="Claude">Claude</option><option value="Gemini">Gemini</option><option value="OpenCode">OpenCode</option></select>
+          </label>
+          <label class="recent-filter"><span class="rf-label">Type</span>
+            <select id="recent-type-filter"><option value="">All</option></select>
+          </label>
+          <button class="btn ghost" id="recent-filter-clear">清除</button>
+        </div>
+        <ol id="recent-tasks" class="recent-feed"></ol>
+      </div>
+    </div>
+
+    <div class="card project-activity-card">
+      <div class="card-head"><h2>项目活跃度 / Project Activity</h2><span class="muted small" id="project-meta">-</span></div>
+      <div id="project-activity" class="project-activity"></div>
     </div>
   </section>
 
@@ -115,7 +187,7 @@
         <div class="group-label">Heavy</div>
         <div class="action-grid">
           <button class="act" data-cmd="package-local"><span class="act-name">package:local</span><span class="act-desc">Build local handoff zip</span></button>
-          <button class="act warn" data-cmd="verify" data-skiparchive="1"><span class="act-name">verify <span class="flag">--SkipArchive</span></span><span class="act-desc">Run faster verification</span></button>
+          <button class="act warn" data-cmd="verify" data-skiparchive="1"><span class="act-name">verify <span class="flag">--skip-archive</span></span><span class="act-desc">Run faster verification</span></button>
           <button class="act warn" data-cmd="verify"><span class="act-name">verify <span class="flag">full</span></span><span class="act-desc">Run full verification and archive</span></button>
         </div>
       </div>
@@ -193,19 +265,44 @@
         <div class="log-actions">
           <span class="muted small" id="verify-meta">-</span>
           <button class="btn ghost" id="verify-refresh">Refresh</button>
-          <button class="btn warn" id="verify-run" data-cmd="verify" data-skiparchive="1">Run verify (--SkipArchive)</button>
+          <button class="btn warn" id="verify-run" data-cmd="verify" data-skiparchive="1">Run verify (--skip-archive)</button>
         </div>
       </div>
       <pre id="verify-tail" class="log"></pre>
     </div>
   </section>
+
+  <section class="panel hidden" data-panel="sources">
+    <div class="card">
+      <div class="card-head">
+        <h2>Registered Sources</h2>
+        <div class="log-actions">
+          <span class="muted small" id="sources-meta">-</span>
+          <button class="btn ghost" id="sources-refresh">Refresh</button>
+        </div>
+      </div>
+      <p class="muted small">Read-only probe of every enabled source adapter. Shows whether the sessions directory exists, how many files were found, and any errors.</p>
+      <div id="sources-list" class="sources-list"></div>
+    </div>
+  </section>
 </main>
 
 <footer class="footer">
-  <span class="muted small">Local only / 127.0.0.1 / no upload / v0.6.0</span>
+  <span class="muted small" id="footer-meta">Local only / 127.0.0.1 / no upload</span>
 </footer>
 
 <script src="/static/app.js" defer></script>
 <div id="toast-host" class="toast-host"></div>
+
+<div id="task-detail-overlay" class="task-detail-overlay hidden" role="dialog" aria-label="Task detail">
+  <div class="task-detail-backdrop" id="task-detail-backdrop"></div>
+  <div class="task-detail-panel">
+    <div class="task-detail-head">
+      <h2 id="td-title">Task Detail</h2>
+      <button class="btn ghost" id="td-close">Close</button>
+    </div>
+    <div id="td-body" class="task-detail-body"></div>
+  </div>
+</div>
 </body>
 </html>

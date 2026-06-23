@@ -1,12 +1,14 @@
 {
   "name": "codexjournal-lite",
-  "version": "0.6.5",
-  "description": "Local-only CLI + dashboard that turns Codex session files into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
+  "version": "1.4.1",
+  "description": "Local-only multi-source CLI + dashboard that turns AI coding session files (Codex, Claude Code, Gemini CLI, OpenCode, JetBrains) into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
-    "codexjournal-lite": "src/index.js"
+    "codexjournal-lite": "src/index.js",
+    "codexjournal": "src/index.js"
   },
   "main": "src/index.js",
   "scripts": {
+    "test": "npm run test:sanitize && npm run test:sources && npm run test:archive && npm run test:privacy && npm run test:console && npm run test:root && npm run test:source-doctor && npm run test:release && npm run test:export && npm run test:tags && npm run test:cluster && npm run test:migration",
     "archive": "node src/index.js archive",
     "build-index": "node src/index.js build-index",
     "stats": "node src/index.js stats",
@@ -17,14 +19,28 @@
     "verify:fresh": "node src/verify.js --fresh",
     "verify:ps1": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
     "scan:sources": "node src/index.js scan-sources",
-    "test:sources": "node src/sources/idea.test.js && node src/sources/idea-parser.test.js",
+    "test:sources": "node src/sources/idea.test.js && node src/sources/idea-parser.test.js && node src/sources/claude.test.js && node src/sources/gemini.test.js && node src/sources/opencode.test.js && node src/searchQuery.test.js",
     "test:sanitize": "node src/sanitize.test.js",
+    "test:archive": "node src/archive.integration.test.js",
+    "test:privacy": "node src/privacy.acceptance.test.js",
+    "test:console": "node src/console.smoke.test.js",
+    "test:root": "node src/root.integration.test.js",
+    "test:source-doctor": "node src/sourceDoctor.test.js",
+    "test:release": "node src/releaseCheck.test.js",
+    "test:export": "node src/export.test.js",
+    "test:tags": "node src/tags.test.js",
+    "test:cluster": "node src/cluster.test.js",
+    "test:migration": "node src/migration.test.js",
+    "smoke": "node scripts/smoke-test.js && node src/console.smoke.test.js",
     "summarize": "node src/index.js summarize",
     "doctor": "node src/index.js doctor",
+    "source-doctor": "node src/index.js source-doctor",
+    "export": "node src/index.js export",
     "index:outputs": "node src/index.js index-outputs",
     "package:local": "powershell -ExecutionPolicy Bypass -File scripts/package-local.ps1",
     "package:public": "powershell -ExecutionPolicy Bypass -File scripts/package-public.ps1",
     "verify:public-zip": "powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1",
+    "release:check": "node src/index.js release-check",
     "console": "node console/server.js"
   },
   "engines": {
@@ -43,12 +59,17 @@
   "homepage": "https://github.com/jiezeng2004-design/CodexJournal-Lite#readme",
   "keywords": [
     "codex",
+    "claude-code",
+    "gemini-cli",
+    "opencode",
+    "jetbrains",
     "journal",
     "local-only",
     "privacy",
     "cli",
     "markdown",
-    "ai-work-log"
+    "ai-work-log",
+    "multi-source"
   ],
   "files": [
     "src/",

@@ -43,8 +43,9 @@ function renderDay(date, tasks, cfg) {
     lines.push('## ' + time + ' · ' + title);
     lines.push('');
     lines.push('- type: `' + (t.taskType || 'general') + '`');
-    if (t.keywords && t.keywords.length) {
-      lines.push('- keywords: ' + t.keywords.map((k) => '`' + k + '`').join(', '));
+    const safeKeywords = sanitize.redactKeywords(t.keywords);
+    if (safeKeywords && safeKeywords.length) {
+      lines.push('- keywords: ' + safeKeywords.map((k) => '`' + k + '`').join(', '));
     }
     if (t.projectPath) {
       lines.push('- project: `' + sanitize.redactPath(t.projectPath) + '`');
@@ -93,8 +94,10 @@ function buildStats(tasks, cfg) {
     stats.bySource[t.source || 'unknown'] = (stats.bySource[t.source || 'unknown'] || 0) + 1;
     stats.byType[t.taskType || 'general'] = (stats.byType[t.taskType || 'general'] || 0) + 1;
     if (t.date) stats.byDay[t.date] = (stats.byDay[t.date] || 0) + 1;
-    for (const k of t.keywords || []) {
-      stats.topKeywords[k] = (stats.topKeywords[k] || 0) + 1;
+    for (const k of sanitize.redactKeywords(t.keywords || [])) {
+      if (!sanitize.isCredentialKeyword(k)) {
+        stats.topKeywords[k] = (stats.topKeywords[k] || 0) + 1;
+      }
     }
   }
   stats.totals.days = daySet.size;
@@ -123,7 +126,8 @@ function buildSearch(tasks, cfg) {
   });
   for (const t of sorted) {
     const title = sanitize.redactText((t.title || '').replace(/\|/g, '\\|'));
-    const kws = (t.keywords || []).slice(0, 8).map((k) => '`' + k + '`').join(' ');
+    const safeKws = sanitize.redactKeywords(t.keywords || []);
+    const kws = safeKws.slice(0, 8).map((k) => '`' + k + '`').join(' ');
     const src = (t.source || '').replace(/\|/g, '\\|');
     const raw = sanitize.redactPath(t.rawFilePath || '').replace(/\|/g, '\\|');
     lines.push('| ' + (t.date || 'unknown') + ' | ' + (t.time || '??:??') + ' | `' + (t.taskType || 'general') + '` | ' + title + ' | ' + kws + ' | ' + src + ' | ' + raw + ' |');
@@ -138,8 +142,9 @@ function buildSearch(tasks, cfg) {
     lines.push('');
     lines.push('- id: `' + t.id + '`');
     lines.push('- type: `' + (t.taskType || 'general') + '`');
-    if (t.keywords && t.keywords.length) {
-      lines.push('- keywords: ' + t.keywords.map((k) => '`' + k + '`').join(', '));
+    const safeKeywords = sanitize.redactKeywords(t.keywords);
+    if (safeKeywords && safeKeywords.length) {
+      lines.push('- keywords: ' + safeKeywords.map((k) => '`' + k + '`').join(', '));
     }
     if (t.projectPath) lines.push('- project: `' + sanitize.redactPath(t.projectPath) + '`');
     lines.push('- source: `' + t.source + '`');
