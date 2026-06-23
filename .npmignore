@@ -1,0 +1,14 @@
+# .npmignore - explicitly exclude generated files from npm pack
+# This works together with the "files" whitelist in package.json.
+# Generated data files (never published)
+data/*
+!data/.gitkeep
+!data/README.md
+journal/*
+!journal/.gitkeep
+!journal/README.md
+reports/*
+!reports/.gitkeep
+!reports/README.md
+dist/*
+!dist/.gitkeep

@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const idea = require('./idea');
+const sanitize = require('../sanitize');
 
 let passed = 0;
 let failed = 0;
@@ -40,6 +41,7 @@ function section(name) {
 const here = __dirname;
 const projectRoot = path.resolve(here, '..', '..');
 const fixtureRoot = path.resolve(projectRoot, 'test-fixtures', 'idea-logs', 'JetBrains');
+const fixtureRootForOutput = sanitize.redactText(fixtureRoot);
 
 section('fixture setup');
 check('test-fixtures/idea-logs/JetBrains exists', fs.existsSync(fixtureRoot),
@@ -77,12 +79,12 @@ check('result.likelyAiFiles.length >= 2', result.likelyAiFiles.length >= 2,
 check('result.skippedLargeFiles.length == 0', result.skippedLargeFiles.length === 0,
   'skippedLargeFiles=' + result.skippedLargeFiles.length);
 
-// v0.4.1 split: roots vs log-dirs vs files.
+// split: roots vs log-dirs vs files.
 check('result.searchedRoots includes the fixture root',
   Array.isArray(result.searchedRoots) && result.searchedRoots.length >= 1,
   'searchedRoots.length=' + (result.searchedRoots ? result.searchedRoots.length : 'undef'));
 check('result.existingRoots contains the fixture root',
-  Array.isArray(result.existingRoots) && result.existingRoots.indexOf(fixtureRoot) >= 0,
+  Array.isArray(result.existingRoots) && result.existingRoots.indexOf(fixtureRootForOutput) >= 0,
   'existingRoots=' + JSON.stringify(result.existingRoots));
 check('result.discoveredLogDirs has at least one entry',
   Array.isArray(result.discoveredLogDirs) && result.discoveredLogDirs.length >= 1,

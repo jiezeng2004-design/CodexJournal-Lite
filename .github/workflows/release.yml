@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
@@ -22,8 +22,8 @@ jobs:
       - name: Verify fresh clone
         run: npm.cmd run verify:fresh
 
-      - name: Run source fixture tests
-        run: npm.cmd run test:sources
+      - name: Run complete test suite
+        run: npm.cmd test
 
       - name: Check npm package contents
         run: npm.cmd pack --dry-run
@@ -57,36 +57,26 @@ jobs:
           "$hash  $zipName" | Out-File "$zip.sha256" -Encoding ascii
           Get-Content "$zip.sha256"
 
+      - name: Build release notes from CHANGELOG
+        shell: pwsh
+        run: |
+          $version = "${{ steps.vars.outputs.version }}"
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $escapedVersion = [regex]::Escape($version)
+          $pattern = "(?ms)^## \[$escapedVersion\][^\r\n]*\r?\n.*?(?=^## \[|\z)"
+          $match = [regex]::Match($changelog, $pattern)
+          if (-not $match.Success) {
+            throw "CHANGELOG.md has no release section for $version"
+          }
+          $notes = "# CodexJournal-Lite v$version`n`n" + $match.Value.Trim() + "`n"
+          Set-Content -LiteralPath release-notes.md -Value $notes -Encoding utf8
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
         with:
           name: CodexJournal-Lite v${{ steps.vars.outputs.version }}
           tag_name: v${{ steps.vars.outputs.version }}
-          body: |
-            ## CodexJournal-Lite v${{ steps.vars.outputs.version }}
-
-            This release focuses on automated public release packaging.
-
-            ### Added
-
-            - Added automated GitHub Release workflow for version tags.
-            - Added public release ZIP verification.
-            - Added SHA256 checksum generation for release archives.
-
-            ### Security
-
-            - Public release assets are verified before upload.
-            - Release ZIP verification rejects `.git/`, `.env`, `node_modules/`, generated journals, task records, local reports, nested ZIP files, and other private outputs.
-
-            ### Assets
-
-            Download the public release archive:
-
-            `CodexJournal-Lite-v${{ steps.vars.outputs.version }}-public.zip`
-
-            Verify it with:
-
-            `CodexJournal-Lite-v${{ steps.vars.outputs.version }}-public.zip.sha256`
+          body_path: release-notes.md
           files: |
             ${{ steps.vars.outputs.zip }}
             ${{ steps.vars.outputs.zip }}.sha256

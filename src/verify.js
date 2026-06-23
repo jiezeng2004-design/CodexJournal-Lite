@@ -184,19 +184,73 @@
  }
 
  // ======================================================================
- // SECTION B: npm run archive -- --force
- // ======================================================================
- section('B. npm run archive -- --force');
- if (SKIP_ARCHIVE) {
-   info('B: skipped (--fresh or --skip-archive passed).');
- } else {
-   const archiveResult = runNpm(['run', 'archive', '--', '--force']);
-   if (archiveResult.code === 0) {
-     pass('B: npm run archive -- --force exited 0');
-   } else {
-     fail('B: npm run archive -- --force exited ' + archiveResult.code);
-   }
- }
+// SECTION B: npm run archive -- --force
+// ======================================================================
+section('B. npm run archive -- --force');
+if (SKIP_ARCHIVE) {
+  info('B: skipped (--fresh or --skip-archive passed).');
+} else {
+  const archiveResult = runNpm(['run', 'archive', '--', '--force']);
+  if (archiveResult.code === 0) {
+    pass('B: npm run archive -- --force exited 0');
+  } else {
+    fail('B: npm run archive -- --force exited ' + archiveResult.code);
+  }
+}
+
+// ======================================================================
+// SECTION B2: offline fixture tests
+// ======================================================================
+section('B2. offline fixture tests');
+{
+  const sanitizeResult = runNpm(['run', 'test:sanitize']);
+  if (sanitizeResult.code === 0) { pass('B2: npm run test:sanitize exited 0'); }
+  else { fail('B2: npm run test:sanitize exited ' + sanitizeResult.code); }
+
+  const sourcesResult = runNpm(['run', 'test:sources']);
+  if (sourcesResult.code === 0) { pass('B2: npm run test:sources exited 0'); }
+  else { fail('B2: npm run test:sources exited ' + sourcesResult.code); }
+
+  const archiveTestResult = runNpm(['run', 'test:archive']);
+  if (archiveTestResult.code === 0) { pass('B2: npm run test:archive exited 0'); }
+  else { fail('B2: npm run test:archive exited ' + archiveTestResult.code); }
+
+  const privacyResult = runNpm(['run', 'test:privacy']);
+  if (privacyResult.code === 0) { pass('B2: npm run test:privacy exited 0'); }
+  else { fail('B2: npm run test:privacy exited ' + privacyResult.code); }
+
+  const consoleResult = runNpm(['run', 'test:console']);
+  if (consoleResult.code === 0) { pass('B2: npm run test:console exited 0'); }
+  else { fail('B2: npm run test:console exited ' + consoleResult.code); }
+
+  const rootResult = runNpm(['run', 'test:root']);
+  if (rootResult.code === 0) { pass('B2: npm run test:root exited 0'); }
+  else { fail('B2: npm run test:root exited ' + rootResult.code); }
+
+  const sourceDoctorResult = runNpm(['run', 'test:source-doctor']);
+  if (sourceDoctorResult.code === 0) { pass('B2: npm run test:source-doctor exited 0'); }
+  else { fail('B2: npm run test:source-doctor exited ' + sourceDoctorResult.code); }
+
+  const releaseResult = runNpm(['run', 'test:release']);
+  if (releaseResult.code === 0) { pass('B2: npm run test:release exited 0'); }
+  else { fail('B2: npm run test:release exited ' + releaseResult.code); }
+
+  const exportResult = runNpm(['run', 'test:export']);
+  if (exportResult.code === 0) { pass('B2: npm run test:export exited 0'); }
+  else { fail('B2: npm run test:export exited ' + exportResult.code); }
+
+  const tagsResult = runNpm(['run', 'test:tags']);
+  if (tagsResult.code === 0) { pass('B2: npm run test:tags exited 0'); }
+  else { fail('B2: npm run test:tags exited ' + tagsResult.code); }
+
+  const clusterResult = runNpm(['run', 'test:cluster']);
+  if (clusterResult.code === 0) { pass('B2: npm run test:cluster exited 0'); }
+  else { fail('B2: npm run test:cluster exited ' + clusterResult.code); }
+
+  const migrationResult = runNpm(['run', 'test:migration']);
+  if (migrationResult.code === 0) { pass('B2: npm run test:migration exited 0'); }
+  else { fail('B2: npm run test:migration exited ' + migrationResult.code); }
+}
 
  // ======================================================================
  // SECTION C: real Windows username leak
@@ -260,7 +314,7 @@
  section('E. title pollution check');
  const tasksData = readJson(path.join(PROJECT_ROOT, 'data', 'tasks.json'));
  if (!tasksData || !Array.isArray(tasksData.tasks)) {
-   if (FRESH) { warn('E: data/tasks.json not found; run npm run archive first (skipped in --fresh mode).'); }
+   if (FRESH) { info('E: data/tasks.json not found; run npm run archive first (skipped in --fresh mode).'); }
    else { fail('E: data/tasks.json not found; run npm run archive first.'); }
  } else {
    const tasks = tasksData.tasks;
@@ -280,7 +334,7 @@
  // ======================================================================
  section('F. tasks field completeness');
  if (!tasksData || !Array.isArray(tasksData.tasks)) {
-   if (FRESH) { warn('F: skipped, data/tasks.json not available (--fresh mode).'); }
+   if (FRESH) { info('F: skipped, data/tasks.json not available (--fresh mode).'); }
    else { fail('F: skipped, data/tasks.json not available.'); }
  } else {
    const REQUIRED_FIELDS = ['id','date','time','source','projectPath','title','taskType','keywords','userSummary','assistantSummary','rawFilePath','messageCount','firstTimestamp','lastTimestamp'];
@@ -302,7 +356,7 @@
  // ======================================================================
  section('G. date correctness (Asia/Shanghai local date == task.date)');
 if (!tasksData || !Array.isArray(tasksData.tasks)) {
-  if (FRESH) { warn('G: skipped, data/tasks.json not available (--fresh mode).'); }
+  if (FRESH) { info('G: skipped, data/tasks.json not available (--fresh mode).'); }
   else { fail('G: skipped, data/tasks.json not available.'); }
 } else {
   var gBad = 0;
@@ -329,9 +383,9 @@ if (!tasksData || !Array.isArray(tasksData.tasks)) {
  const journalCount = jFiles.length;
  const taskCount = (tasksData && Array.isArray(tasksData.tasks)) ? tasksData.tasks.length : 0;
  if (journalCount >= 1) { pass('H: journal/ has ' + journalCount + ' .md file(s) (>= 1).'); }
- else { if (FRESH) { warn('H: journal/ has 0 .md files (--fresh mode).'); } else { fail('H: journal/ has 0 .md files.'); } }
+ else { if (FRESH) { info('H: journal/ has 0 .md files (--fresh mode).'); } else { fail('H: journal/ has 0 .md files.'); } }
  if (taskCount >= 1) { pass('H: data/tasks.json has ' + taskCount + ' task(s) (>= 1).'); }
- else { if (FRESH) { warn('H: data/tasks.json has 0 tasks (--fresh mode).'); } else { fail('H: data/tasks.json has 0 tasks.'); } }
+ else { if (FRESH) { info('H: data/tasks.json has 0 tasks (--fresh mode).'); } else { fail('H: data/tasks.json has 0 tasks.'); } }
 
  // ======================================================================
  // SECTION I: git-commit.ps1 DryRun safety (PowerShell-only on Windows)
@@ -421,23 +475,23 @@ if (!tasksData || !Array.isArray(tasksData.tasks)) {
  if (summarizeResult.code === 0) {
    pass('L: npm run summarize exited 0.');
  } else {
-   if (FRESH) { warn('L: npm run summarize exited ' + summarizeResult.code + ' (empty data; --fresh mode).'); }
+   if (FRESH) { info('L: npm run summarize exited ' + summarizeResult.code + ' (empty data; --fresh mode).'); }
    else { fail('L: npm run summarize exited ' + summarizeResult.code); }
  }
 
  // Check summarize outputs exist
  function checkExists(label, p) {
    if (exists(p)) { pass('L: ' + label + ' exists.'); return true; }
-   else { if (FRESH) { warn('L: ' + label + ' missing (--fresh mode).'); } else { fail('L: ' + label + ' missing.'); } return false; }
+   else { if (FRESH) { info('L: ' + label + ' missing (--fresh mode).'); } else { fail('L: ' + label + ' missing.'); } return false; }
  }
  checkExists('data/patterns.json', path.join(PROJECT_ROOT, 'data', 'patterns.json'));
  checkExists('reports/work-patterns.md', path.join(PROJECT_ROOT, 'reports', 'work-patterns.md'));
  const lMonthly = globFiles(path.join(PROJECT_ROOT, 'reports', 'monthly'), /\.md$/i, false);
  if (lMonthly.length >= 1) { pass('L: reports/monthly/ has ' + lMonthly.length + ' .md file(s) (>= 1).'); }
- else { if (FRESH) { warn('L: reports/monthly/ has 0 .md files (--fresh mode).'); } else { fail('L: reports/monthly/ has 0 .md files.'); } }
+ else { if (FRESH) { info('L: reports/monthly/ has 0 .md files (--fresh mode).'); } else { fail('L: reports/monthly/ has 0 .md files.'); } }
  const lYearly = globFiles(path.join(PROJECT_ROOT, 'reports', 'yearly'), /\.md$/i, false);
  if (lYearly.length >= 1) { pass('L: reports/yearly/ has ' + lYearly.length + ' .md file(s) (>= 1).'); }
- else { if (FRESH) { warn('L: reports/yearly/ has 0 .md files (--fresh mode).'); } else { fail('L: reports/yearly/ has 0 .md files.'); } }
+ else { if (FRESH) { info('L: reports/yearly/ has 0 .md files (--fresh mode).'); } else { fail('L: reports/yearly/ has 0 .md files.'); } }
 
  // Check protected files not mutated
  const lMutated = [];
@@ -484,7 +538,7 @@ if (!tasksData || !Array.isArray(tasksData.tasks)) {
  // doctor
  const doctorResult = runNpm(['run', 'doctor']);
  if (doctorResult.code === 0) { pass('M: npm run doctor exited 0.'); }
- else { if (FRESH) { warn('M: npm run doctor exited ' + doctorResult.code + ' (--fresh mode).'); } else { fail('M: npm run doctor exited ' + doctorResult.code); } }
+ else { if (FRESH) { info('M: npm run doctor exited ' + doctorResult.code + ' (--fresh mode).'); } else { fail('M: npm run doctor exited ' + doctorResult.code); } }
 
  // index:outputs
  const indexResult = runNpm(['run', 'index:outputs']);

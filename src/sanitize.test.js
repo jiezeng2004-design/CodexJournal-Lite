@@ -297,6 +297,113 @@ test('code with no credentials is preserved', () => {
 });
 
 // ------------------------------------------------------------------
+// redactWithDiff
+// ------------------------------------------------------------------
+section('redactWithDiff');
+
+test('redactWithDiff redacts API key and returns diffs', function () {
+  const input = ['OPENAI', 'API', 'KEY'].join('_') + '=' +
+    ['sk-proj', 'abcdef1234567890'].join('-');
+  const result = sanitize.redactWithDiff(input);
+  assert.ok(result.diffs.length > 0, 'should have at least 1 diff');
+  assert.ok(result.redacted.indexOf('sk-proj-abcdef1234567890') < 0, 'redacted should not contain secret');
+  assert.ok(result.redacted.indexOf('<REDACTED>') >= 0, 'redacted should contain REDACTED placeholder');
+});
+
+test('redactWithDiff returns empty diffs for clean text', function () {
+  const input = 'This is a clean message with no secrets.';
+  const result = sanitize.redactWithDiff(input);
+  assert.strictEqual(result.diffs.length, 0, 'should have 0 diffs');
+  assert.strictEqual(result.redacted, input);
+});
+
+test('redactWithDiff handles custom redactPatterns', function () {
+  sanitize.setCustomPatterns([
+    { name: 'internal-code', pattern: 'PROJ-[A-Z0-9]+', replacement: '<REDACTED>', flags: 'gi' }
+  ]);
+  const input = 'Working on PROJ-X42 and PROJ-Y99';
+  const result = sanitize.redactWithDiff(input);
+  assert.ok(result.diffs.length > 0, 'should have diffs for custom patterns');
+  assert.ok(result.redacted.indexOf('PROJ-X42') < 0, 'should not contain PROJ-X42');
+  assert.ok(result.redacted.indexOf('PROJ-Y99') < 0, 'should not contain PROJ-Y99');
+  // Reset custom patterns
+  sanitize.setCustomPatterns([]);
+});
+
+test('redactWithDiff redacts macOS /Users/ paths', function () {
+  const input = 'File located at /Users/fakeuser/project/app.js';
+  const result = sanitize.redactWithDiff(input, { localUserNames: ['fakeuser'] });
+  assert.ok(result.redacted.indexOf('fakeuser') < 0, 'should not contain username');
+  assert.ok(result.redacted.indexOf('<USER>') >= 0, 'should contain USER placeholder');
+});
+
+// ------------------------------------------------------------------
+// sanitizeTaskWithDiff
+// ------------------------------------------------------------------
+section('sanitizeTaskWithDiff');
+
+test('sanitizeTaskWithDiff returns redaction summary without secrets', function () {
+  const task = {
+    id: 'test_1',
+    title: 'Fix login page',
+    userSummary: 'My API key is sk-proj-test1234567890abcdef',
+    assistantSummary: 'I will help you fix the login page.',
+    projectPath: '/Users/testuser/project',
+    rawFilePath: '/Users/testuser/project/login.js',
+    taskType: 'frontend',
+    source: 'test',
+    date: '2026-01-01',
+    time: '10:00',
+    keywords: ['login'],
+    messageCount: 2,
+    firstTimestamp: '2026-01-01T10:00:00.000Z',
+    lastTimestamp: '2026-01-01T10:05:00.000Z'
+  };
+  const result = sanitize.sanitizeTaskWithDiff(task);
+  assert.ok(typeof result.redactionCount === 'number', 'redactionCount should be a number');
+  assert.ok(Array.isArray(result.patternNames), 'patternNames should be an array');
+  assert.ok(result.task.userSummary.indexOf('sk-proj-test1234567890abcdef') < 0, 'userSummary should not contain API key');
+});
+
+test('sanitizeTaskWithDiff handles null task', function () {
+  const result = sanitize.sanitizeTaskWithDiff(null);
+  assert.strictEqual(result.redactionCount, 0);
+  assert.strictEqual(result.patternNames.length, 0);
+});
+
+// ------------------------------------------------------------------
+// redactKeywords
+// ------------------------------------------------------------------
+section('redactKeywords');
+
+test('redactKeywords filters credential-like tokens', function () {
+  const kws = ['login', 'sk-test1234567890abcdef', 'frontend', 'api_key', 'password'];
+  const result = sanitize.redactKeywords(kws);
+  assert.ok(result.indexOf('sk-test1234567890abcdef') < 0, 'should remove sk- token');
+  assert.ok(result.indexOf('api_key') < 0, 'should remove api_key');
+  assert.ok(result.indexOf('password') < 0, 'should remove password');
+  assert.ok(result.indexOf('login') >= 0, 'should keep login');
+  assert.ok(result.indexOf('frontend') >= 0, 'should keep frontend');
+});
+
+test('redactKeywords redacts via redactText first', function () {
+  const kws = ['sk-proj-abc123', 'normal'];
+  const result = sanitize.redactKeywords(kws);
+  assert.ok(result.indexOf('sk-proj-abc123') < 0, 'should redact sk-proj');
+  assert.ok(result.indexOf('normal') >= 0, 'should keep normal');
+});
+
+test('isCredentialKeyword matches credential tokens', function () {
+  assert.ok(sanitize.isCredentialKeyword('sk-test123'));
+  assert.ok(sanitize.isCredentialKeyword('ghp_xxxxxxxx'));
+  assert.ok(sanitize.isCredentialKeyword('xoxb-xxx'));
+  assert.ok(sanitize.isCredentialKeyword('token'));
+  assert.ok(sanitize.isCredentialKeyword('api_key'));
+  assert.ok(!sanitize.isCredentialKeyword('login'));
+  assert.ok(!sanitize.isCredentialKeyword('frontend'));
+});
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 section('result');
