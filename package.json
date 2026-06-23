@@ -1,6 +1,6 @@
 {
   "name": "codexjournal-lite",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Local-only multi-source CLI + dashboard that turns AI coding session files (Codex, Claude Code, Gemini CLI, OpenCode, JetBrains) into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
     "codexjournal-lite": "src/index.js",

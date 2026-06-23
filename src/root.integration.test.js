@@ -214,10 +214,18 @@ test('app.js does not contain weeks * 7 in cols calculation', function() {
 // ------------------------------------------------------------------
 section('Version consistency');
 
-test('package.json version is 1.4.1', function() {
+test('package.json version is 1.4.2', function() {
   const pkg = JSON.parse(fs.readFileSync(path.join(roots.APP_ROOT, 'package.json'), 'utf8'));
-  assert.strictEqual(pkg.version, '1.4.1');
+  assert.strictEqual(pkg.version, '1.4.2');
 });
+test('CLI help reports all 19 release checks', function() {
+  const indexSrc = fs.readFileSync(path.join(roots.APP_ROOT, 'src', 'index.js'), 'utf8');
+  assert.ok(indexSrc.indexOf('release-check  Pre-release readiness verification (19 checks)') >= 0,
+    'help text should report 19 release checks');
+  assert.ok(indexSrc.indexOf('release-check  Pre-release readiness verification (17 checks)') < 0,
+    'help text should not report the stale 17-check count');
+});
+
 
 test('No stale version references in README', function() {
   const readme = fs.readFileSync(path.join(roots.APP_ROOT, 'README.md'), 'utf8');

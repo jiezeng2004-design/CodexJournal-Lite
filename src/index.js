@@ -2097,7 +2097,7 @@ function main() {
       process.stdout.write('  summarize      Generate work-pattern, monthly, and yearly reports\n');
       process.stdout.write('  doctor         Environment and output completeness check\n');
       process.stdout.write('  source-doctor  Health check for all source adapters (doctor/capabilities)\n');
-      process.stdout.write('  release-check  Pre-release readiness verification (17 checks)\n');
+      process.stdout.write('  release-check  Pre-release readiness verification (19 checks)\n');
       process.stdout.write('  index-outputs  Generate output file index\n');
       process.stdout.write('  export         Export sanitized tasks to dist/exports/ (jsonl or markdown)\n');
       process.stdout.write('  tag            Manage local task tags (add/remove/list/search)\n');
