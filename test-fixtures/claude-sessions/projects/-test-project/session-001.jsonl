@@ -1,0 +1,5 @@
+{"type":"user","message":{"role":"user","content":"Fix the login page CSS layout issue"},"cwd":"/home/test/project","sessionId":"sess-001","uuid":"u1","parentUuid":null,"timestamp":"2026-01-15T10:30:00.000Z","version":"1.0.0","gitBranch":"main"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I will check the login.css file and fix the layout."}],"model":"claude-sonnet-4-20250514","usage":{}},"uuid":"a1","parentUuid":"u1","timestamp":"2026-01-15T10:30:05.000Z"}
+{"type":"user","message":{"role":"user","content":"The API key is sk-test1234567890abcdef"},"cwd":"/home/test/project","sessionId":"sess-001","uuid":"u2","parentUuid":"a1","timestamp":"2026-01-15T10:31:00.000Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I see you mentioned an API key. Let me help you with the layout."}],"model":"claude-sonnet-4-20250514","usage":{}},"uuid":"a2","parentUuid":"u2","timestamp":"2026-01-15T10:31:10.000Z"}
+{"type":"ai-title","sessionId":"sess-001","aiTitle":"Fix login page CSS layout"}

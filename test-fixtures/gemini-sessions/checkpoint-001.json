@@ -1,0 +1,11 @@
+{
+  "sessionId": "gemini-001",
+  "timestamp": "2026-01-16T14:00:00.000Z",
+  "cwd": "/home/test/gemini-project",
+  "messages": [
+    {"role": "user", "content": "Help me write a Python script to parse JSON files", "timestamp": "2026-01-16T14:00:00.000Z"},
+    {"role": "model", "content": "Here is a Python script using the json module...", "timestamp": "2026-01-16T14:00:10.000Z"},
+    {"role": "user", "content": "Can you also add error handling?", "timestamp": "2026-01-16T14:01:00.000Z"},
+    {"role": "model", "content": "I have added try-except blocks to handle JSON parse errors.", "timestamp": "2026-01-16T14:01:15.000Z"}
+  ]
+}

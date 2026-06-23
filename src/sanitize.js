@@ -138,6 +138,9 @@ function redactText(input, opts) {
     // immediately after the username so we don't rewrite ordinary text)
     const reHome = new RegExp('(/home/)' + esc + '/', 'gi');
     s = s.replace(reHome, '$1' + USER_PLACEHOLDER + '/');
+    // 5) macOS homedir: /Users/xxx/  (same path-style guard as Linux)
+    const reMac = new RegExp('(/Users/)' + esc + '(?=/|$|[\\s"\'`:;,.)\\]])', 'gi');
+    s = s.replace(reMac, '$1' + USER_PLACEHOLDER);
   }
   return s;
 }
@@ -192,9 +195,10 @@ function setCustomPatterns(patterns) {
   for (const p of patterns) {
     if (p && p.pattern && p.replacement) {
       try {
+        const flags = p.flags || 'gi';
         customPatterns.push({
           name: p.name || 'custom',
-          re: new RegExp(p.pattern, 'gi'),
+          re: new RegExp(p.pattern, flags),
           replace: typeof p.replacement === 'string' ? () => p.replacement : String(p.replacement)
         });
       } catch (_) {}
@@ -202,10 +206,121 @@ function setCustomPatterns(patterns) {
   }
 }
 
+// Redact text and return both the redacted result and a list of
+// individual redactions that were applied. Useful for preview/diff views.
+function redactWithDiff(input, opts) {
+  if (input == null) return { redacted: input, diffs: [] };
+  const original = typeof input === 'string' ? input : String(input);
+  const diffs = [];
+
+  // Apply built-in patterns and track changes
+  let s = original;
+  for (const p of PATTERNS) {
+    const before = s;
+    s = s.replace(p.re, p.replace);
+    if (s !== before) {
+      // Find what was redacted (simplified: just record the pattern name)
+      diffs.push({ name: p.name, original: '(matched)', replaced: '(redacted)' });
+    }
+  }
+
+  // Apply custom patterns
+  for (const cp of customPatterns) {
+    const before = s;
+    s = s.replace(cp.re, cp.replace);
+    if (s !== before) {
+      diffs.push({ name: cp.name, original: '(matched)', replaced: '(redacted)' });
+    }
+  }
+
+  // Apply username redaction
+  const users = (opts && opts.localUserNames) || getLocalUserNames();
+  for (const u of users) {
+    if (!u) continue;
+    const esc = u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tail = '(?=$|[\\\\\\/\\s>"\':;,\\.\\)\\]$`])';
+    const reWinBack = new RegExp('([A-Za-z]:\\\\)Users\\\\' + esc + tail, 'gi');
+    const beforeWin = s;
+    s = s.replace(reWinBack, '$1Users\\' + USER_PLACEHOLDER);
+    if (s !== beforeWin) diffs.push({ name: 'windows-username', original: u, replaced: USER_PLACEHOLDER });
+
+    const reHome = new RegExp('(/home/)' + esc + '/', 'gi');
+    const beforeHome = s;
+    s = s.replace(reHome, '$1' + USER_PLACEHOLDER + '/');
+    if (s !== beforeHome) diffs.push({ name: 'linux-username', original: u, replaced: USER_PLACEHOLDER });
+
+    const reMac = new RegExp('(/Users/)' + esc + '(?=/|$|[\\s"\'`:;,.)\\]])', 'gi');
+    const beforeMac = s;
+    s = s.replace(reMac, '$1' + USER_PLACEHOLDER);
+    if (s !== beforeMac) diffs.push({ name: 'macos-username', original: u, replaced: USER_PLACEHOLDER });
+  }
+
+  return { redacted: s, diffs: diffs };
+}
+
+// Sanitize a task object and return both the sanitized task and a
+// summary of redactions applied. Does NOT include original secret text.
+// Credential-like keyword filter: prevents API keys and tokens from
+// leaking into keyword lists extracted from session content.
+const CREDENTIAL_KEYWORD_RE = /^(sk-[a-z0-9_\-]+|gh[pousr]_[a-z0-9]+|xox[baprs]-[a-z0-9\-]+|token|api_key|apikey|password|secret|access_token|refresh_token|bearer|authorization|connect\.sid|sessionid)$/i;
+
+function isCredentialKeyword(kw) {
+  if (!kw || typeof kw !== 'string') return false;
+  return CREDENTIAL_KEYWORD_RE.test(kw);
+}
+
+function redactKeywords(keywords) {
+  if (!Array.isArray(keywords)) return keywords;
+  return keywords.map(function (kw) {
+    if (!kw || typeof kw !== 'string') return kw;
+    // First run through the full redaction pipeline
+    const redacted = redactText(kw);
+    // Then filter out credential-like tokens entirely
+    if (isCredentialKeyword(redacted) || isCredentialKeyword(kw)) {
+      return '<REDACTED>';
+    }
+    return redacted;
+  });
+}
+
+function sanitizeTaskWithDiff(t) {
+  if (!t) return { task: t, redactionCount: 0, patternNames: [] };
+  const allDiffs = [];
+  const patternNames = [];
+
+  function redactField(value) {
+    if (!value || typeof value !== 'string') return value;
+    const result = redactWithDiff(value);
+    for (const d of result.diffs) {
+      allDiffs.push(d);
+      if (patternNames.indexOf(d.name) < 0) patternNames.push(d.name);
+    }
+    return result.redacted;
+  }
+
+  const sanitized = Object.assign({}, t);
+  sanitized.title = redactField(t.title);
+  sanitized.userSummary = redactField(t.userSummary);
+  sanitized.assistantSummary = redactField(t.assistantSummary);
+  sanitized.projectPath = redactField(t.projectPath);
+  sanitized.rawFilePath = redactField(t.rawFilePath);
+  sanitized.keywords = redactKeywords(t.keywords);
+
+  return {
+    task: sanitized,
+    redactionCount: allDiffs.length,
+    patternNames: patternNames
+  };
+}
+
 module.exports = {
   redactText,
   redactPath,
   redactObjectDeep,
+  redactWithDiff,
+  sanitizeTaskWithDiff,
+  redactKeywords,
+  isCredentialKeyword,
   setCustomPatterns,
   REDACTED,
   USER_PLACEHOLDER,

@@ -23,6 +23,11 @@
 //   GET  /api/jobs/:id/stream       -> SSE: stdout/stderr/exit events
 //   POST /api/jobs/:id/stop         -> kill a running job
 //
+// Stable v1 API (old routes kept as backward-compatible aliases):
+//   GET  /api/v1/tasks/:id          -> single task full detail (from data/tasks.json)
+//   GET  /api/v1/sources            -> all registered source statuses (sources.probeAll)
+//   GET  /api/v1/search             -> global search with filters: type, source, dateFrom, dateTo
+//
 // Hard rules:
 //   - Bind 127.0.0.1 by default. Not reachable from LAN.
 //   - Commands are hardcoded allowlist; args are restricted to a small set
@@ -38,7 +43,22 @@ const path = require('path');
 const { spawn, execFile } = require('child_process');
 const { URL } = require('url');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+const roots = require(path.join(__dirname, '..', 'src', 'roots'));
+function parseServerArgs() {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--root' && args[i + 1]) return { root: args[i + 1] };
+  }
+  return {};
+}
+// APP_ROOT: source code and built-in assets directory (read-only).
+const APP_ROOT = roots.APP_ROOT;
+// WORKSPACE_ROOT: user data workspace (data/, journal/, reports/, dist/).
+// Resolved from --root arg, CODEXJOURNAL_ROOT env, or process.cwd().
+const WORKSPACE_ROOT = roots.resolveWorkspaceRoot(parseServerArgs());
+// Backward-compatible alias; prefer WORKSPACE_ROOT for data reads.
+const PROJECT_ROOT = WORKSPACE_ROOT;
+const searchQuery = require(path.join(APP_ROOT, 'src', 'searchQuery'));
 const PUBLIC_DIR   = path.join(__dirname, 'public');
 const PORT         = parseInt(process.env.PORT || '7777', 10);
 const HOST         = process.env.HOST || '127.0.0.1';
@@ -111,6 +131,27 @@ async function readTextSafe(p) {
   try {
     return await fs.promises.readFile(p, 'utf8');
   } catch (_) { return null; }
+}
+
+// --------------------------------------------------------------------------
+// Lazy module loaders for src/* (used by /api/v1/* stable API).
+// Loaded lazily so the server still starts even if src/ has an issue.
+// --------------------------------------------------------------------------
+let _sourcesMod = null;
+let _configMod = null;
+function getSourcesMod() {
+  if (_sourcesMod === null) {
+    try { _sourcesMod = require(path.join(APP_ROOT, 'src', 'sources')); }
+    catch (e) { _sourcesMod = { __error: e.message }; }
+  }
+  return _sourcesMod;
+}
+function getConfigMod() {
+  if (_configMod === null) {
+    try { _configMod = require(path.join(APP_ROOT, 'src', 'config')); }
+    catch (e) { _configMod = { __error: e.message }; }
+  }
+  return _configMod;
 }
 
 async function listFiles(dir, pattern) {
@@ -186,7 +227,7 @@ const CMD_TABLE = {
   'doctor':        { runner: 'npm',  args: () => ['run', 'doctor'] },
   'index-outputs': { runner: 'npm',  args: () => ['run', 'index:outputs'] },
   'package-local': { runner: 'npm',  args: () => ['run', 'package:local'] },
-  'verify':        { runner: 'npm',  args: (q) => ['run', 'verify', q.skipArchive ? '--' : '', q.skipArchive ? '--SkipArchive' : ''].filter(Boolean) }
+  'verify':        { runner: 'npm',  args: (q) => ['run', 'verify', q.skipArchive ? '--' : '', q.skipArchive ? '--skip-archive' : ''].filter(Boolean) }
 };
 
 function startJob(cmd, query) {
@@ -214,11 +255,11 @@ function startJob(cmd, query) {
     const quoted = ['npm', ...args].map(a => (/[\s"]/.test(a) ? '"' + a.replace(/"/g, '\\"') + '"' : a)).join(' ');
     runnerBin = comspec;
     runnerArgs = ['/d', '/s', '/c', quoted];
-    runnerOpts = { cwd: PROJECT_ROOT, env: process.env, windowsHide: true };
+    runnerOpts = { cwd: WORKSPACE_ROOT, env: process.env, windowsHide: true };
   } else {
     runnerBin = 'npm';
     runnerArgs = args;
-    runnerOpts = { cwd: PROJECT_ROOT, env: process.env, windowsHide: true };
+    runnerOpts = { cwd: WORKSPACE_ROOT, env: process.env, windowsHide: true };
   }
   const child = spawn(runnerBin, runnerArgs, runnerOpts);
 
@@ -281,13 +322,13 @@ function stopJob(id) {
 // Domain reads
 // --------------------------------------------------------------------------
 async function buildDashboard() {
-  const stats = await readJsonSafe(path.join(PROJECT_ROOT, 'data', 'stats.json'));
-  const pkg   = await readJsonSafe(path.join(PROJECT_ROOT, 'package.json'));
-  const cfg   = await readJsonSafe(path.join(PROJECT_ROOT, 'config.json'));
-  const doc   = await readTextSafe(path.join(PROJECT_ROOT, 'reports', 'doctor.md'));
-  const tasks = await readJsonSafe(path.join(PROJECT_ROOT, 'data', 'tasks.json'));
-  const journalFiles = await listFiles(path.join(PROJECT_ROOT, 'journal'));
-  const distFiles    = await listFiles(path.join(PROJECT_ROOT, 'dist'));
+  const stats = await readJsonSafe(path.join(WORKSPACE_ROOT, 'data', 'stats.json'));
+  const pkg   = await readJsonSafe(path.join(WORKSPACE_ROOT, 'package.json'));
+  const cfg   = await readJsonSafe(path.join(WORKSPACE_ROOT, 'config.json'));
+  const doc   = await readTextSafe(path.join(WORKSPACE_ROOT, 'reports', 'doctor.md'));
+  const tasks = await readJsonSafe(path.join(WORKSPACE_ROOT, 'data', 'tasks.json'));
+  const journalFiles = await listFiles(path.join(WORKSPACE_ROOT, 'journal'));
+  const distFiles    = await listFiles(path.join(WORKSPACE_ROOT, 'dist'));
 
   let tasksCount = 0;
   let messagesCount = 0;
@@ -325,11 +366,106 @@ async function buildDashboard() {
     if (m2) docFail = +m2[1];
   }
 
+  // Aggregate messages by day from tasks
+  const byDayMessages = {};
+  const taskList = Array.isArray(tasks) ? tasks : (tasks && Array.isArray(tasks.tasks) ? tasks.tasks : []);
+  for (const t of taskList) {
+    if (t && t.date && /^\d{4}-\d{2}-\d{2}$/.test(t.date)) {
+      byDayMessages[t.date] = (byDayMessages[t.date] || 0) + (t.messageCount || 0);
+    }
+  }
+
+  // Aggregate journal file sizes by day
+  const byDayJournalSize = {};
+  for (const jf of journalFiles) {
+    if (jf.name && /^\d{4}-\d{2}-\d{2}/.test(jf.name)) {
+      const day = jf.name.slice(0, 10);
+      byDayJournalSize[day] = (byDayJournalSize[day] || 0) + (jf.size || 0);
+    }
+  }
+
+  // Week stats (this week's new tasks)
+  const now = new Date();
+  const weekStart = new Date(now.getTime() - ((now.getDay() + 6) % 7) * 86400000);
+  const weekStartStr = weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
+  const lastWeekStart = new Date(weekStart.getTime() - 7 * 86400000);
+  const lastWeekStartStr = lastWeekStart.getFullYear() + '-' + String(lastWeekStart.getMonth() + 1).padStart(2, '0') + '-' + String(lastWeekStart.getDate()).padStart(2, '0');
+  let weekTasks = 0, lastWeekTasks = 0;
+  const byDayData = (stats && stats.byDay) || {};
+  for (const d in byDayData) {
+    if (d >= weekStartStr) weekTasks += byDayData[d] || 0;
+    else if (d >= lastWeekStartStr && d < weekStartStr) lastWeekTasks += byDayData[d] || 0;
+  }
+
+  // Streak (consecutive active days from today backwards)
+  let streak = 0;
+  let longestStreak = 0;
+  {
+    let checkDate = new Date(now);
+    // Current streak: from today backwards
+    while (true) {
+      const ds = checkDate.getFullYear() + '-' + String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + String(checkDate.getDate()).padStart(2, '0');
+      if (byDayData[ds] > 0) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+      else break;
+    }
+    // Longest streak: scan all byDay dates
+    const sortedDays = Object.keys(byDayData).filter(function(d) { return byDayData[d] > 0; }).sort();
+    if (sortedDays.length > 0) {
+      let curStreak = 1;
+      for (let i = 1; i < sortedDays.length; i++) {
+        const prev = new Date(sortedDays[i - 1]);
+        const curr = new Date(sortedDays[i]);
+        const diff = Math.round((curr - prev) / 86400000);
+        if (diff === 1) curStreak++;
+        else { if (curStreak > longestStreak) longestStreak = curStreak; curStreak = 1; }
+      }
+      if (curStreak > longestStreak) longestStreak = curStreak;
+    }
+  }
+
+  // Source distribution
+  const sourceDist = {};
+  for (const t of taskList) {
+    if (t && t.source) {
+      sourceDist[t.source] = (sourceDist[t.source] || 0) + 1;
+    }
+  }
+
+  // Top projects (by task count, top 5)
+  const projectMap = {};
+  for (const t of taskList) {
+    if (!t) continue;
+    const p = t.projectPath || '(unknown)';
+    if (!projectMap[p]) projectMap[p] = { path: p, count: 0, lastDate: '' };
+    projectMap[p].count++;
+    if (t.date && t.date > projectMap[p].lastDate) projectMap[p].lastDate = t.date;
+  }
+  const topProjects = Object.values(projectMap)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(p => ({ path: p.path, count: p.count, lastDate: p.lastDate }));
+
+  // Verify summary (parse reports/verify-full.log tail)
+  let verifySummary = null;
+  try {
+    const verifyLog = await readTextSafe(path.join(WORKSPACE_ROOT, 'reports', 'verify-full.log'));
+    if (verifyLog) {
+      const passMatch = verifyLog.match(/passed:\s*(\d+)/i);
+      const failMatch = verifyLog.match(/failed:\s*(\d+)/i);
+      verifySummary = {
+        pass: passMatch ? +passMatch[1] : null,
+        fail: failMatch ? +failMatch[1] : null
+      };
+    }
+  } catch (_) {}
+
   return {
     project: {
       name: pkg && pkg.name,
       version: pkg && pkg.version,
-      root: PROJECT_ROOT,
+      root: WORKSPACE_ROOT,
+      workspaceRoot: WORKSPACE_ROOT,
+      appRoot: APP_ROOT,
       sessionsDir: cfg && cfg.sessionsDir,
       node: process.version
     },
@@ -342,34 +478,42 @@ async function buildDashboard() {
     },
     topType, topKw,
     byDay:  (stats && stats.byDay)  || {},
+    byDayMessages,
+    byDayJournalSize,
     byType: (stats && stats.byType) || {},
     lastTasks,
+    weekStats: { tasks: weekTasks, lastWeekTasks: lastWeekTasks },
+    streak: streak,
+    longestStreak: longestStreak,
+    sourceDistribution: sourceDist,
+    topProjects: topProjects,
+    verify: verifySummary,
     doctor: { pass: docPass, fail: docFail, generatedAt: doc ? null : null },
     serverTime: new Date().toISOString()
   };
 }
 
 async function buildJournalList() {
-  return listFiles(path.join(PROJECT_ROOT, 'journal'));
+  return listFiles(path.join(WORKSPACE_ROOT, 'journal'));
 }
 
 async function buildReportsList() {
   const out = [];
-  await listDirRecursive(path.join(PROJECT_ROOT, 'reports'), '', out);
+  await listDirRecursive(path.join(WORKSPACE_ROOT, 'reports'), '', out);
   out.sort((a, b) => b.mtime.localeCompare(a.mtime));
   return out;
 }
 
 async function buildDataList() {
-  return listFiles(path.join(PROJECT_ROOT, 'data'), /^(?!index\.json$).+/);
+  return listFiles(path.join(WORKSPACE_ROOT, 'data'), /^(?!index\.json$).+/);
 }
 
 async function buildDistList() {
-  return listFiles(path.join(PROJECT_ROOT, 'dist'));
+  return listFiles(path.join(WORKSPACE_ROOT, 'dist'));
 }
 
 async function readTasksPage(limit, offset, search, type) {
-  const tasks = await readJsonSafe(path.join(PROJECT_ROOT, 'data', 'tasks.json'));
+  const tasks = await readJsonSafe(path.join(WORKSPACE_ROOT, 'data', 'tasks.json'));
   let list = null;
   if (Array.isArray(tasks)) list = tasks;
   else if (tasks && Array.isArray(tasks.tasks)) list = tasks.tasks;
@@ -380,26 +524,44 @@ async function readTasksPage(limit, offset, search, type) {
     filtered = filtered.filter(t => String(t.taskType || 'unknown').toLowerCase() === want);
   }
   if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(t => {
-      return (t.title && t.title.toLowerCase().includes(q))
-        || (t.userSummary && t.userSummary.toLowerCase().includes(q))
-        || (t.taskType && t.taskType.toLowerCase().includes(q))
-        || (t.date && String(t.date).includes(q))
-        || (Array.isArray(t.keywords) && t.keywords.some(k => String(k).toLowerCase().includes(q)));
-    });
+    // Check if query contains field syntax (contains ':')
+    if (search.indexOf(':') !== -1) {
+      const parsed = searchQuery.parseSearchQuery(search);
+      filtered = filtered.filter(t => searchQuery.matchTask(t, parsed));
+    } else {
+      // Original substring search (backward compatible)
+      const q = search.toLowerCase();
+      filtered = filtered.filter(t => {
+        return (t.title && t.title.toLowerCase().includes(q))
+          || (t.userSummary && t.userSummary.toLowerCase().includes(q))
+          || (t.taskType && t.taskType.toLowerCase().includes(q))
+          || (t.date && String(t.date).includes(q))
+          || (Array.isArray(t.keywords) && t.keywords.some(k => String(k).toLowerCase().includes(q)));
+      });
+    }
   }
   const start = Math.max(0, parseInt(offset || '0', 10));
   const end   = start + Math.max(1, Math.min(500, parseInt(limit || '50', 10)));
   return { total: filtered.length, items: filtered.slice(start, end) };
 }
 
+async function findTaskById(id) {
+  if (!id) return null;
+  const tasks = await readJsonSafe(path.join(WORKSPACE_ROOT, 'data', 'tasks.json'));
+  let list = null;
+  if (Array.isArray(tasks)) list = tasks;
+  else if (tasks && Array.isArray(tasks.tasks)) list = tasks.tasks;
+  if (!list) return null;
+  const want = String(id);
+  return list.find(t => String(t.id) === want) || null;
+}
+
 async function readVerifyTail(lines) {
-  const text = await readTextSafe(path.join(PROJECT_ROOT, 'reports', 'verify-full.log'));
+  const text = await readTextSafe(path.join(WORKSPACE_ROOT, 'reports', 'verify-full.log'));
   if (!text) return { lines: [], exists: false };
   const all = text.split(/\r?\n/);
   const tail = all.slice(-Math.max(10, Math.min(500, parseInt(lines || '60', 10))));
-  return { lines: tail, exists: true, total: all.length, mtime: (await fs.promises.stat(path.join(PROJECT_ROOT, 'reports', 'verify-full.log'))).mtime.toISOString() };
+  return { lines: tail, exists: true, total: all.length, mtime: (await fs.promises.stat(path.join(WORKSPACE_ROOT, 'reports', 'verify-full.log'))).mtime.toISOString() };
 }
 
 // --------------------------------------------------------------------------
@@ -415,13 +577,18 @@ function snippetAround(text, idx, qLen, ctx) {
   return pre + body + post;
 }
 
-async function searchJournal(qLower, qRaw) {
+async function searchJournal(qLower, qRaw, filters) {
+  filters = filters || {};
   const out = [];
-  const dir = path.join(PROJECT_ROOT, 'journal');
+  const dir = path.join(WORKSPACE_ROOT, 'journal');
   let entries;
   try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); } catch (_) { return out; }
   for (const e of entries) {
     if (!e.isFile() || !/^\d{4}-\d{2}-\d{2}\.md$/.test(e.name)) continue;
+    const date = e.name.replace(/\.md$/, '');
+    // date range filter (YYYY-MM-DD string comparison)
+    if (filters.dateFrom && date < filters.dateFrom) continue;
+    if (filters.dateTo && date > filters.dateTo) continue;
     const text = await readTextSafe(path.join(dir, e.name));
     if (!text) continue;
     const lower = text.toLowerCase();
@@ -432,7 +599,7 @@ async function searchJournal(qLower, qRaw) {
     while ((pos = lower.indexOf(qLower, pos)) !== -1) { count++; pos += qLower.length; }
     out.push({
       source: 'journal',
-      date:   e.name.replace(/\.md$/, ''),
+      date:   date,
       snippet: snippetAround(text, idx, qRaw.length, 80),
       score:  count
     });
@@ -440,62 +607,100 @@ async function searchJournal(qLower, qRaw) {
   return out;
 }
 
-async function searchTasks(qLower, qRaw) {
-  const tasks = await readJsonSafe(path.join(PROJECT_ROOT, 'data', 'tasks.json'));
+async function searchTasks(qLower, qRaw, filters) {
+  filters = filters || {};
+  const tasks = await readJsonSafe(path.join(WORKSPACE_ROOT, 'data', 'tasks.json'));
   let list = null;
   if (Array.isArray(tasks)) list = tasks;
   else if (tasks && Array.isArray(tasks.tasks)) list = tasks.tasks;
   if (!list) return [];
+  const wantType   = filters.type     ? String(filters.type).toLowerCase()     : '';
+  const wantSource = filters.source   ? String(filters.source).toLowerCase()   : '';
+  // Parse structured query for field search support
+  const parsed = searchQuery.parseSearchQuery(qRaw);
+  const hasFieldQuery = Object.keys(parsed.filters).length > 0 ||
+                        Object.keys(parsed.excludeFilters).length > 0 ||
+                        parsed.textTerms.length > 0 || parsed.phrases.length > 0;
   const out = [];
   for (const t of list) {
-    const fields = [
-      ['title',            t.title],
-      ['userSummary',      t.userSummary],
-      ['assistantSummary', t.assistantSummary],
-      ['taskType',         t.taskType],
-      ['date',             t.date],
-      ['keywords',         Array.isArray(t.keywords) ? t.keywords.join(' ') : '']
-    ];
-    let count = 0;
-    let firstHitIdx = -1;
-    let firstHitField = '';
-    let firstHitText = '';
-    for (const [name, val] of fields) {
-      if (val == null) continue;
-      const text = String(val);
-      const lower = text.toLowerCase();
-      const occ = lower.split(qLower).length - 1;
-      if (occ > 0) {
-        count += occ;
-        const idx = lower.indexOf(qLower);
-        if (idx !== -1 && (firstHitIdx === -1 || name === 'title' || (firstHitField !== 'title' && name === 'userSummary'))) {
-          // 优先 title，再 userSummary，再其他
-          const pref = { title: 0, userSummary: 1, assistantSummary: 2, keywords: 3, taskType: 4, date: 5 };
-          if (firstHitIdx === -1 || (pref[name] || 9) < (pref[firstHitField] || 9)) {
-            firstHitIdx = idx;
-            firstHitField = name;
-            firstHitText = text;
+    // type filter (by taskType) — from UI dropdown
+    if (wantType && String(t.taskType || 'unknown').toLowerCase() !== wantType) continue;
+    // source filter (by source field) — from UI dropdown
+    if (wantSource && String(t.source || '').toLowerCase() !== wantSource) continue;
+    // date range filter (YYYY-MM-DD string comparison; skip "unknown" dates)
+    if (filters.dateFrom && (!t.date || t.date === 'unknown' || t.date < filters.dateFrom)) continue;
+    if (filters.dateTo   && (!t.date || t.date === 'unknown' || t.date > filters.dateTo)) continue;
+
+    if (hasFieldQuery) {
+      // Structured field search mode
+      if (!searchQuery.matchTask(t, parsed)) continue;
+      // Build a snippet from the first matching text field
+      var snippet = '';
+      var allText = searchQuery.getAllSearchableText(t);
+      var firstTerm = parsed.textTerms[0] || parsed.phrases[0] || '';
+      if (firstTerm) {
+        var idx = allText.toLowerCase().indexOf(firstTerm.toLowerCase());
+        if (idx !== -1) snippet = snippetAround(allText, idx, firstTerm.length, 60);
+      }
+      out.push({
+        source: 'task',
+        id:      t.id,
+        date:    t.date,
+        type:    t.taskType,
+        title:   t.title || '(无标题)',
+        snippet: snippet,
+        score:   1
+      });
+    } else {
+      // Original substring search with scoring (backward compatible)
+      const fields = [
+        ['title',            t.title],
+        ['userSummary',      t.userSummary],
+        ['assistantSummary', t.assistantSummary],
+        ['taskType',         t.taskType],
+        ['date',             t.date],
+        ['keywords',         Array.isArray(t.keywords) ? t.keywords.join(' ') : '']
+      ];
+      let count = 0;
+      let firstHitIdx = -1;
+      let firstHitField = '';
+      let firstHitText = '';
+      for (const [name, val] of fields) {
+        if (val == null) continue;
+        const text = String(val);
+        const lower = text.toLowerCase();
+        const occ = lower.split(qLower).length - 1;
+        if (occ > 0) {
+          count += occ;
+          const idx = lower.indexOf(qLower);
+          if (idx !== -1 && (firstHitIdx === -1 || name === 'title' || (firstHitField !== 'title' && name === 'userSummary'))) {
+            const pref = { title: 0, userSummary: 1, assistantSummary: 2, keywords: 3, taskType: 4, date: 5 };
+            if (firstHitIdx === -1 || (pref[name] || 9) < (pref[firstHitField] || 9)) {
+              firstHitIdx = idx;
+              firstHitField = name;
+              firstHitText = text;
+            }
           }
         }
       }
+      if (count === 0) continue;
+      out.push({
+        source: 'task',
+        id:      t.id,
+        date:    t.date,
+        type:    t.taskType,
+        title:   t.title || '(无标题)',
+        snippet: firstHitText ? snippetAround(firstHitText, firstHitIdx, qRaw.length, 60) : '',
+        score:   count
+      });
     }
-    if (count === 0) continue;
-    out.push({
-      source: 'task',
-      id:      t.id,
-      date:    t.date,
-      type:    t.taskType,
-      title:   t.title || '(无标题)',
-      snippet: firstHitText ? snippetAround(firstHitText, firstHitIdx, qRaw.length, 60) : '',
-      score:   count
-    });
   }
   return out;
 }
 
 async function searchReports(qLower, qRaw) {
   const out = [];
-  const dir = path.join(PROJECT_ROOT, 'reports');
+  const dir = path.join(WORKSPACE_ROOT, 'reports');
   const collected = [];
   await listDirRecursive(dir, '', collected);
   for (const f of collected) {
@@ -518,20 +723,22 @@ async function searchReports(qLower, qRaw) {
   return out;
 }
 
-async function globalSearch(q, limit) {
+async function globalSearch(q, limit, filters) {
   q = (q || '').trim();
-  if (q.length < 2) return { q, total: 0, groups: { journal: [], task: [], report: [] } };
+  filters = filters || {};
+  if (q.length < 2) return { q, filters, total: 0, groups: { journal: [], task: [], report: [] } };
   const lim = Math.max(1, Math.min(100, parseInt(limit || '20', 10)));
   const qLower = q.toLowerCase();
   const [journal, task, report] = await Promise.all([
-    searchJournal(qLower, q),
-    searchTasks(qLower, q),
+    searchJournal(qLower, q, filters),
+    searchTasks(qLower, q, filters),
     searchReports(qLower, q)
   ]);
   // 在合并前按 limit 分桶：每个 source 内按 score 降序截到 limit
   const trunc = (arr) => arr.sort((a, b) => b.score - a.score).slice(0, lim);
   return {
     q,
+    filters,
     total: journal.length + task.length + report.length,
     groups: {
       journal: trunc(journal),
@@ -572,13 +779,27 @@ async function readBodyJson(req) {
   });
 }
 
-function setCors(res) {
-  // local-only, but allow the same-origin XHR explicitly. No wildcard.
+function setSecurityHeaders(res) {
+  // local-only, but set security headers explicitly.
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'DENY');
+  // CSP: allow self for all resources; inline scripts/styles needed for theme detection
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'"
+  ].join('; '));
 }
 
 const server = http.createServer(async (req, res) => {
-  setCors(res);
+  setSecurityHeaders(res);
   const url = new URL(req.url, 'http://127.0.0.1');
   const p = url.pathname;
   try {
@@ -597,7 +818,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p.startsWith('/api/journal/')) {
       const date = decodeURIComponent(p.slice('/api/journal/'.length));
       if (!/^\d{4}-\d{2}-\d{2}\.md$/.test(date)) return badRequest(res, 'date must be YYYY-MM-DD.md');
-      const fp = safeJoin(path.join(PROJECT_ROOT, 'journal'), date);
+      const fp = safeJoin(path.join(WORKSPACE_ROOT, 'journal'), date);
       if (!fp || !fs.existsSync(fp)) return notFound(res, 'no such journal file');
       const text = await fs.promises.readFile(fp, 'utf8');
       return textResponse(res, 200, text, MIME['.md']);
@@ -606,7 +827,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/reports') return jsonResponse(res, 200, { items: await buildReportsList() });
     if (req.method === 'GET' && p.startsWith('/api/reports/')) {
       const rel = decodeURIComponent(p.slice('/api/reports/'.length));
-      const fp = safeJoin(path.join(PROJECT_ROOT, 'reports'), rel);
+      const fp = safeJoin(path.join(WORKSPACE_ROOT, 'reports'), rel);
       if (!fp || !fs.existsSync(fp)) return notFound(res, 'no such report');
       const text = await fs.promises.readFile(fp, 'utf8');
       return textResponse(res, 200, text, MIME['.md']);
@@ -624,7 +845,7 @@ const server = http.createServer(async (req, res) => {
       const name = decodeURIComponent(p.slice('/api/data/'.length));
       if (name.includes('..') || name.includes('/') || name.includes('\\')) return badRequest(res, 'invalid name');
       if (name === 'index.json') return notFound(res, 'data/index.json is gitignored and intentionally not exposed via the console');
-      const fp = path.join(PROJECT_ROOT, 'data', name);
+      const fp = path.join(WORKSPACE_ROOT, 'data', name);
       if (!fs.existsSync(fp)) return notFound(res, 'no such data file');
       const ext = path.extname(name).toLowerCase();
       if (ext === '.json') {
@@ -642,7 +863,7 @@ const server = http.createServer(async (req, res) => {
       const items = await buildDistList();
       const zip = items.find(x => x.name.endsWith('.zip'));
       if (!zip) return notFound(res, 'no zip artifact');
-      const fp = path.join(PROJECT_ROOT, 'dist', zip.name);
+      const fp = path.join(WORKSPACE_ROOT, 'dist', zip.name);
       const st = await fs.promises.stat(fp);
       res.writeHead(200, {
         'Content-Type': MIME['.zip'],
@@ -660,10 +881,56 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && p === '/api/search') {
-      const q      = url.searchParams.get('q')      || '';
-      const limit  = url.searchParams.get('limit')  || '20';
+      const q        = url.searchParams.get('q')        || '';
+      const limit    = url.searchParams.get('limit')    || '20';
+      const type     = url.searchParams.get('type')     || '';
+      const source   = url.searchParams.get('source')   || '';
+      const dateFrom = url.searchParams.get('dateFrom') || '';
+      const dateTo   = url.searchParams.get('dateTo')   || '';
       if (q.trim().length < 2) return badRequest(res, 'q must be at least 2 characters');
-      return jsonResponse(res, 200, await globalSearch(q, limit));
+      return jsonResponse(res, 200, await globalSearch(q, limit, { type, source, dateFrom, dateTo }));
+    }
+
+    // ------------------------------------------------------------------------
+    // Stable v1 API
+    // ------------------------------------------------------------------------
+    if (req.method === 'GET' && p.startsWith('/api/v1/tasks/')) {
+      const id = decodeURIComponent(p.slice('/api/v1/tasks/'.length));
+      if (!id) return badRequest(res, 'task id required');
+      const task = await findTaskById(id);
+      if (!task) return notFound(res, 'no such task: ' + id);
+      return jsonResponse(res, 200, task);
+    }
+
+    if (req.method === 'GET' && p === '/api/v1/sources') {
+      const sm = getSourcesMod();
+      const cm = getConfigMod();
+      if (sm.__error) return jsonResponse(res, 500, { error: 'sources module load failed: ' + sm.__error });
+      if (cm.__error) return jsonResponse(res, 500, { error: 'config module load failed: ' + cm.__error });
+      const cfg = cm.loadConfig(WORKSPACE_ROOT, APP_ROOT);
+      const result = sm.probeAll(cfg);
+      return jsonResponse(res, 200, { sources: result, generatedAt: new Date().toISOString() });
+    }
+
+    if (req.method === 'GET' && p === '/api/v1/source-doctor') {
+      const sm = getSourcesMod();
+      const cm = getConfigMod();
+      if (sm.__error) return jsonResponse(res, 500, { error: 'sources module load failed: ' + sm.__error });
+      if (cm.__error) return jsonResponse(res, 500, { error: 'config module load failed: ' + cm.__error });
+      const cfg = cm.loadConfig(WORKSPACE_ROOT, APP_ROOT);
+      const result = (typeof sm.doctorAll === 'function') ? sm.doctorAll(cfg) : [];
+      return jsonResponse(res, 200, { sources: result, generatedAt: new Date().toISOString() });
+    }
+
+    if (req.method === 'GET' && p === '/api/v1/search') {
+      const q        = url.searchParams.get('q')        || '';
+      const limit    = url.searchParams.get('limit')    || '20';
+      const type     = url.searchParams.get('type')     || '';
+      const source   = url.searchParams.get('source')   || '';
+      const dateFrom = url.searchParams.get('dateFrom') || '';
+      const dateTo   = url.searchParams.get('dateTo')   || '';
+      if (q.trim().length < 2) return badRequest(res, 'q must be at least 2 characters');
+      return jsonResponse(res, 200, await globalSearch(q, limit, { type, source, dateFrom, dateTo }));
     }
 
     if (req.method === 'GET' && p === '/api/jobs') {
@@ -722,16 +989,23 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  let ver = '?';
+  try { ver = require(path.join(WORKSPACE_ROOT, 'package.json')).version || '?'; }
+  catch (_) {
+    try { ver = require(path.join(APP_ROOT, 'package.json')).version || '?'; }
+    catch (_) { ver = '?'; }
+  }
   const banner = [
     '',
     '  +------------------------------------------+',
     '  |  CodexJournal-Lite Console               |',
-    '  |  v' + (require(path.join(PROJECT_ROOT, 'package.json')).version || '?').padEnd(40) + '|',
+    '  |  v' + (ver || '?').padEnd(40) + '|',
     '  +------------------------------------------+',
-    '   url     : http://' + HOST + ':' + PORT,
-    '   project : ' + PROJECT_ROOT,
-    '   mode    : 127.0.0.1 only (local)',
-    '   stop    : Ctrl+C in this window',
+    '   url      : http://' + HOST + ':' + PORT,
+    '   workspace: ' + WORKSPACE_ROOT,
+    '   app      : ' + APP_ROOT,
+    '   mode     : 127.0.0.1 only (local)',
+    '   stop     : Ctrl+C in this window',
     ''
   ].join('\n');
   console.log(banner);

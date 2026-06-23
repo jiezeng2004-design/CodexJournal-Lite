@@ -8,11 +8,13 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
 const state = {
   tab: 'dashboard',
+  dashboard: { byDay: {}, heatmapWeeks: 12, lastTasks: [], recentSource: '', recentType: '', byType: {} },
   journal: { items: [], current: null, filter: '', counts: {} },
   reports: { items: [], current: null },
   data:    { items: [], current: null, maxSize: 1, typeFilter: '' },
   dist:    { items: [] },
   tasks:   { items: [], total: 0, offset: 0, limit: 25, query: '', type: '' },
+  sources: { items: [], loaded: false },
   job:     { id: null, sse: null },
   verify:  { lines: [], exists: false }
 };
@@ -255,7 +257,18 @@ function renderHBars(host, items) {
 }
 
 
-function renderHeatmap(host, byDay, weeks) {
+function getHeatmapTooltip() {
+  var tip = document.getElementById('heatmap-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'heatmap-tooltip';
+    tip.className = 'heatmap-tooltip';
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+
+function renderHeatmap(host, byDay, weeks, extra) {
   clearHost(host);
   if (!byDay || !Object.keys(byDay).length) { host.textContent = '暂无数据'; return; }
   var today = new Date(); weeks = weeks || 12;
@@ -266,15 +279,20 @@ function renderHeatmap(host, byDay, weeks) {
       counts[d] = byDay[d]; if (byDay[d] > maxCount) maxCount = byDay[d];
     }
   }
-  var cellSize = 12, cellGap = 3, padL = 36, padT = 12;
-  var cols = weeks * 7 + 1;
+  // Adaptive cell size based on weeks range
+  var cellSize, cellGap;
+  if (weeks <= 12) { cellSize = 16; cellGap = 4; }
+  else if (weeks <= 26) { cellSize = 12; cellGap = 3; }
+  else { cellSize = 9; cellGap = 2; }
+  var padL = 36, padT = 14;
+  var cols = weeks + 1;
   var hostW = padL + cols * (cellSize + cellGap);
   var hostH = padT + 7 * (cellSize + cellGap) + 16;
   var svg = svgEl('svg', { viewBox: '0 0 ' + hostW + ' ' + hostH, preserveAspectRatio: 'xMidYMid meet' });
   // Month labels
   var monthLabels = {};
   var d = new Date(start);
-  for (var i = 0; i < weeks; i++) { monthLabels[d.getMonth()] = i; d.setDate(d.getDate() + 7); }
+  for (var i = 0; i < cols; i++) { monthLabels[d.getMonth()] = i; d.setDate(d.getDate() + 7); }
   var mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   for (var m in monthLabels) {
     var x = padL + monthLabels[m] * (cellSize + cellGap) + (cellSize + cellGap) / 2;
@@ -291,6 +309,8 @@ function renderHeatmap(host, byDay, weeks) {
   }
   // Cells
   var ptr = new Date(start);
+  var msgData = (extra && extra.messages) || {};
+  var sizeData = (extra && extra.journalSize) || {};
   for (var col = 0; col < cols; col++) {
     for (var row = 0; row < 7; row++) {
       var ds = ptr.getFullYear() + '-' + String(ptr.getMonth() + 1).padStart(2,'0') + '-' + String(ptr.getDate()).padStart(2,'0');
@@ -299,11 +319,57 @@ function renderHeatmap(host, byDay, weeks) {
       var y = padT + row * (cellSize + cellGap);
       var opacity = count > 0 ? 0.2 + Math.min(count / maxCount, 1) * 0.8 : 0;
       var cell = svgEl('rect', { class: 'heatmap-cell', x: x, y: y, width: cellSize, height: cellSize, rx: 2, fill: 'currentColor', opacity: opacity });
-      var t = svgEl('title'); t.textContent = ds + ' · ' + count + ' tasks'; cell.appendChild(t);
+      // Custom hover tooltip with messages and journal size
+      (function(cellEl, dateStr, taskCount) {
+        cellEl.addEventListener('mouseenter', function(e) {
+          var tip = getHeatmapTooltip();
+          var html = '<div class="ht-date">' + dateStr + '</div>'
+            + '<div class="ht-count">' + taskCount + (taskCount === 1 ? ' task' : ' tasks') + '</div>';
+          var msgs = msgData[dateStr];
+          if (msgs) html += '<div class="ht-msg">' + msgs + ' messages</div>';
+          var sz = sizeData[dateStr];
+          if (sz) html += '<div class="ht-size">' + fmtBytes(sz) + '</div>';
+          tip.innerHTML = html;
+          tip.style.display = 'block';
+        });
+        cellEl.addEventListener('mousemove', function(e) {
+          var tip = getHeatmapTooltip();
+          tip.style.left = (e.pageX + 12) + 'px';
+          tip.style.top = (e.pageY - 30) + 'px';
+        });
+        cellEl.addEventListener('mouseleave', function() {
+          getHeatmapTooltip().style.display = 'none';
+        });
+      })(cell, ds, count);
       svg.appendChild(cell);
       ptr.setDate(ptr.getDate() + 1);
     }
   }
+  host.appendChild(svg);
+}
+
+function renderKeywords(host, items) {
+  clearHost(host);
+  if (!items || !items.length) { host.textContent = '暂无数据'; return; }
+  var W = 360, rowH = 24, padL = 110, padR = 40, padT = 4, padB = 4;
+  var H = padT + padB + items.length * rowH;
+  var maxV = Math.max(1, items.map(function(i) { return i.v; }).reduce(function(a,b) { return Math.max(a,b); }, 1));
+  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'xMidYMid meet' });
+  items.forEach(function(it, i) {
+    var y = padT + i * rowH;
+    var innerW = W - padL - padR;
+    var w = innerW * (it.v / maxV);
+    svg.appendChild(svgEl('rect', { class: 'hbar-bg', x: padL, y: y + 5, width: innerW, height: rowH - 12, rx: 3 }));
+    var b = svgEl('rect', { class: 'hbar', x: padL, y: y + 5, width: w, height: rowH - 12, rx: 3 });
+    if (it.color) b.style.fill = it.color;
+    svg.appendChild(b);
+    var lbl = svgEl('text', { class: 'hbar-row', x: padL - 8, y: y + rowH/2 + 4, 'text-anchor': 'end' });
+    lbl.textContent = (it.label || '').slice(0, 16);
+    svg.appendChild(lbl);
+    var cnt = svgEl('text', { class: 'hbar-count', x: W - 6, y: y + rowH/2 + 4 });
+    cnt.textContent = it.v;
+    svg.appendChild(cnt);
+  });
   host.appendChild(svg);
 }
 const TYPE_COLORS = {
@@ -328,6 +394,7 @@ function showTab(name) {
   else if (name === 'data')    loadDataList();
   else if (name === 'dist')    loadDist();
   else if (name === 'verify')  loadVerifyTail();
+  else if (name === 'sources') loadSources();
   else if (name === 'actions') refreshJobs();
 }
 
@@ -336,7 +403,11 @@ async function loadDashboard() {
   setLoading($('#recent-tasks'), true, 4);
   try {
     const d = await api('/api/dashboard');
-    setText($('#brand-meta'), 'v' + d.project.version + ' · node ' + d.project.node + ' · ' + (d.project.sessionsDir || ''));
+    const ver = d.project && d.project.version ? d.project.version : '?';
+    setText($('#brand-meta'), 'v' + ver + ' · node ' + d.project.node + ' · ' + (d.project.sessionsDir || ''));
+    setText($('#server-version'), 'v' + ver);
+    const footer = $('#footer-meta');
+    if (footer) setText(footer, 'Local only / 127.0.0.1 / no upload / v' + ver);
     setText($('#c-tasks'),    d.counts.tasks);
     setText($('#c-messages-sub'), d.counts.messages.toLocaleString() + ' 条消息');
     setText($('#c-days'),     d.counts.days);
@@ -350,7 +421,57 @@ async function loadDashboard() {
       setText($('#c-doctor-sub'), d.doctor.pass + ' / ' + (d.doctor.pass + d.doctor.fail) + ' 项通过');
     } else { setText($('#c-doctor'), '?'); }
 
-    renderHeatmap($('#daily-chart'), d.byDay || {}, 12);
+    // P2-2: 本周新增 card
+    const ws = d.weekStats || {};
+    setText($('#c-week'), ws.tasks != null ? ws.tasks : '-');
+    {
+      const sub = $('#c-week-sub');
+      const lw = ws.lastWeekTasks || 0;
+      const diff = (ws.tasks || 0) - lw;
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+      sub.innerHTML = '<span class="kpi-trend ' + cls + '">' + arrow + ' ' + Math.abs(diff) + '</span> vs 上周 ' + lw;
+    }
+
+    // P2-2: 连续活跃 card
+    setText($('#c-streak'), (d.streak != null ? d.streak : 0) + ' 天');
+    setText($('#c-streak-sub'), '最长连续 ' + (d.longestStreak != null ? d.longestStreak : 0) + ' 天');
+
+    // P2-2: Sources 分布 card (mini horizontal bars)
+    renderSourceMiniBars($('#c-sources'), d.sourceDistribution || {});
+
+    // P2-2: Verify 状态 card
+    {
+      const vEl = $('#c-verify');
+      const sEl = $('#c-verify-sub');
+      const ver = d.verify;
+      if (ver && (ver.pass != null || ver.fail != null)) {
+        const pass = ver.pass || 0, fail = ver.fail || 0;
+        vEl.textContent = fail === 0 ? '✓ ' + pass : '✗ ' + fail;
+        vEl.style.color = fail === 0 ? 'var(--good)' : 'var(--bad)';
+        setText(sEl, pass + ' pass / ' + fail + ' fail');
+      } else if (d.doctor && d.doctor.pass != null) {
+        const pass = d.doctor.pass || 0, fail = d.doctor.fail || 0;
+        vEl.textContent = fail === 0 ? '✓ ' + pass : '✗ ' + fail;
+        vEl.style.color = fail === 0 ? 'var(--good)' : 'var(--bad)';
+        setText(sEl, 'doctor · ' + pass + ' / ' + (pass + fail));
+      } else {
+        vEl.textContent = '?';
+        vEl.style.color = '';
+        setText(sEl, '未运行 verify');
+      }
+    }
+
+    // P2-3: Project Activity panel
+    renderProjectActivity(d.topProjects || []);
+
+    // P2-4: populate recent activity type filter from byType
+    populateRecentTypeFilter(d.byType || {});
+
+    renderHeatmap($('#daily-chart'), d.byDay || {}, state.dashboard.heatmapWeeks, { messages: d.byDayMessages, journalSize: d.byDayJournalSize });
+    state.dashboard.byDay = d.byDay || {};
+    state.dashboard.byDayMessages = d.byDayMessages || {};
+    state.dashboard.byDayJournalSize = d.byDayJournalSize || {};
     setText($('#daily-meta'), '共 ' + Object.keys(d.byDay || {}).length + ' 天');
 
     const typeItems = Object.entries(d.byType || {})
@@ -360,32 +481,155 @@ async function loadDashboard() {
     setText($('#type-meta'), '共 ' + (d.counts.tasks || 0) + ' 个任务');
 
     const kwItems = (d.topKw || []).slice(0, 10).map(([k, v]) => ({ label: k, v, color: 'var(--primary)' }));
-    renderHBars($('#kw-chart'), kwItems);
+    renderKeywords($('#kw-chart'), kwItems);
 
     const rt = $('#recent-tasks'); rt.innerHTML = '';
     setLoading(rt, false);
-    setText($('#recent-count'), '展示 ' + d.lastTasks.length + ' / ' + d.counts.tasks);
-    for (const t of d.lastTasks) {
-      const li = document.createElement('li');
-      const type = (t.type || 'unknown').toLowerCase();
-      li.innerHTML = '<span class="feed-time">' + escapeHtml(t.date) + ' ' + escapeHtml(t.time) + '</span>'
-        + '<span class="feed-type ' + escapeHtml(type) + '">' + escapeHtml(typeLabel(type)) + '</span>'
-        + '<span class="feed-title" title="' + escapeHtml(t.title || '') + '">' + escapeHtml(t.title || '(无标题)') + '</span>';
-      li.addEventListener('click', () => {
-        if (t.date && t.date !== 'unknown' && /^\d{4}-\d{2}-\d{2}$/.test(t.date)) {
-          // 先把目标设为当前，renderJournalList 才不会去自动打开第一项
-          state.journal.current = t.date + '.md';
-          showTab('journal');
-          openJournal(t.date + '.md');
-        } else {
-          showTab('data'); selectDataFile('tasks.json');
-        }
-      });
-      rt.appendChild(li);
+    state.dashboard.lastTasks = d.lastTasks || [];
+    state.dashboard.byType = d.byType || {};
+    // If a filter is active, apply it; otherwise render cached tasks
+    if (state.dashboard.recentSource || state.dashboard.recentType) {
+      applyRecentFilter();
+    } else {
+      renderRecentTasks(state.dashboard.lastTasks);
     }
   } catch (e) {
     setText($('#brand-meta'), '错误: ' + e.message);
     setLoading($('#recent-tasks'), false);
+  }
+}
+
+// ---------- P2-2: source mini bars ----------
+function renderSourceMiniBars(host, dist) {
+  if (!host) return;
+  host.innerHTML = '';
+  const entries = Object.entries(dist || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    host.innerHTML = '<span class="muted small">暂无数据</span>';
+    return;
+  }
+  const maxV = Math.max(1, ...entries.map(e => e[1]));
+  for (const [name, count] of entries) {
+    const row = document.createElement('div');
+    row.className = 'kpi-mini-bar-row';
+    row.innerHTML = '<span class="kpi-mini-bar-label" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>'
+      + '<span class="kpi-mini-bar-track"><span class="kpi-mini-bar-fill" style="width:' + (count / maxV * 100).toFixed(1) + '%"></span></span>'
+      + '<span class="kpi-mini-bar-count">' + count + '</span>';
+    host.appendChild(row);
+  }
+}
+
+// ---------- P2-3: project activity ----------
+function renderProjectActivity(projects) {
+  const host = $('#project-activity');
+  const meta = $('#project-meta');
+  if (!host) return;
+  host.innerHTML = '';
+  if (!projects || !projects.length) {
+    host.innerHTML = '<div class="project-activity-empty">暂无项目数据 / No project data</div>';
+    if (meta) meta.textContent = '-';
+    return;
+  }
+  if (meta) meta.textContent = 'Top ' + projects.length + ' 项目';
+  const maxCount = Math.max(1, ...projects.map(p => p.count || 0));
+  for (const p of projects) {
+    const row = document.createElement('div');
+    row.className = 'pa-row';
+    const base = p.path ? p.path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() : '(unknown)';
+    row.innerHTML = '<div class="pa-info">'
+      + '<span class="pa-name" title="' + escapeHtml(p.path || '') + '">' + escapeHtml(base) + '</span>'
+      + '<div class="pa-bar"><div class="pa-bar-fill" style="width:' + ((p.count || 0) / maxCount * 100).toFixed(1) + '%"></div></div>'
+      + '</div>'
+      + '<span class="pa-count">' + (p.count || 0) + '</span>'
+      + '<span class="pa-date">' + escapeHtml(p.lastDate || '-') + '</span>';
+    row.addEventListener('click', () => {
+      // Jump to Data tab and filter tasks by this project path
+      state.data.typeFilter = '';
+      state.tasks.type = '';
+      state.tasks.query = 'path:' + (p.path || base);
+      state.tasks.offset = 0;
+      showTab('data');
+      if (state.data.current === 'tasks.json') {
+        loadTasksPage();
+      } else {
+        selectDataFile('tasks.json');
+      }
+      setTimeout(() => { const ts = $('#tasks-search'); if (ts) ts.value = state.tasks.query; }, 100);
+      toast('已筛选项目: ' + base, 'info', { ttl: 2500 });
+    });
+    host.appendChild(row);
+  }
+}
+
+// ---------- P2-4: recent activity filters ----------
+function populateRecentTypeFilter(byType) {
+  const sel = $('#recent-type-filter');
+  if (!sel) return;
+  // Preserve current selection
+  const cur = state.dashboard.recentType || sel.value || '';
+  // Rebuild options: All + types sorted by count desc
+  sel.innerHTML = '<option value="">All</option>';
+  const entries = Object.entries(byType || {}).sort((a, b) => b[1] - a[1]);
+  for (const [k] of entries) {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = typeLabel(k);
+    sel.appendChild(o);
+  }
+  sel.value = cur;
+}
+
+function renderRecentTasks(tasks) {
+  const rt = $('#recent-tasks');
+  if (!rt) return;
+  rt.innerHTML = '';
+  const total = state.dashboard.lastTasks.length || (tasks ? tasks.length : 0);
+  setText($('#recent-count'), '展示 ' + (tasks ? tasks.length : 0) + ' / ' + total);
+  for (const t of (tasks || [])) {
+    const li = document.createElement('li');
+    const type = (t.type || t.taskType || 'unknown').toLowerCase();
+    li.innerHTML = '<span class="feed-time">' + escapeHtml(t.date) + ' ' + escapeHtml(t.time || '') + '</span>'
+      + '<span class="feed-type ' + escapeHtml(type) + '">' + escapeHtml(typeLabel(type)) + '</span>'
+      + '<span class="feed-title" title="' + escapeHtml(t.title || '') + '">' + escapeHtml(t.title || '(无标题)') + '</span>';
+    li.addEventListener('click', () => {
+      if (t.id) {
+        openTaskDetail(t.id);
+      } else if (t.date && t.date !== 'unknown' && /^\d{4}-\d{2}-\d{2}$/.test(t.date)) {
+        state.journal.current = t.date + '.md';
+        showTab('journal');
+        openJournal(t.date + '.md');
+      } else {
+        showTab('data'); selectDataFile('tasks.json');
+      }
+    });
+    rt.appendChild(li);
+  }
+}
+
+async function applyRecentFilter() {
+  const src = state.dashboard.recentSource;
+  const typ = state.dashboard.recentType;
+  const rt = $('#recent-tasks');
+  // If no filter, render cached tasks
+  if (!src && !typ) {
+    renderRecentTasks(state.dashboard.lastTasks);
+    return;
+  }
+  if (rt) setLoading(rt, true, 4);
+  try {
+    // Build query: use field syntax for source, type param for type
+    let q = '';
+    let typeParam = '';
+    if (src) q = 'source:' + src;
+    if (typ) typeParam = typ;
+    let url = '/api/data/tasks?limit=25&offset=0';
+    if (q) url += '&q=' + encodeURIComponent(q);
+    if (typeParam) url += '&type=' + encodeURIComponent(typeParam);
+    const r = await api(url);
+    if (rt) setLoading(rt, false);
+    renderRecentTasks(r.items || []);
+    setText($('#recent-count'), '筛选 ' + (r.items ? r.items.length : 0) + ' / ' + r.total);
+  } catch (e) {
+    if (rt) { setLoading(rt, false); rt.textContent = '错误: ' + e.message; }
   }
 }
 
@@ -433,11 +677,20 @@ async function openJournal(name) {
   setLoading($('#journal-content'), true, 6);
   try {
     const text = await api('/api/journal/' + encodeURIComponent(name));
-    setText($('#journal-meta'), fmtBytes(text.length) + ' · ' + text.split(/\r?\n/).length + ' 行');
-    $('#journal-content').innerHTML = renderMarkdown(text);
+    if (!text || !text.trim()) {
+      $('#journal-content').innerHTML = '<div class="md-empty">No journal entries for this date.</div>';
+      setText($('#journal-meta'), '0 B · 0 行');
+    } else {
+      setText($('#journal-meta'), fmtBytes(text.length) + ' · ' + text.split(/\r?\n/).length + ' 行');
+      $('#journal-content').innerHTML = renderMarkdown(text);
+    }
     setLoading($('#journal-content'), false);
     renderJournalList();
-  } catch (e) { $('#journal-content').textContent = '错误: ' + e.message; setLoading($('#journal-content'), false); }
+  } catch (e) {
+    var dateStr = name.replace(/\.md$/, '');
+    $('#journal-content').innerHTML = '<div class="md-error">Failed to load journal/' + escapeHtml(dateStr) + '.md<br><span class="md-error-detail">' + escapeHtml(e.message) + '</span></div>';
+    setLoading($('#journal-content'), false);
+  }
 }
 $('#journal-filter').addEventListener('input', (e) => { state.journal.filter = e.target.value; renderJournalList(); });
 
@@ -652,8 +905,12 @@ async function loadTasksPage() {
         + '<span class="meta"><span class="type-chip ' + escapeHtml(type) + '">' + escapeHtml(typeLabel(type)) + '</span>'
         + '<span>' + escapeHtml(t.date || '') + ' ' + escapeHtml(t.time || '') + '</span></span>';
       li.addEventListener('click', () => {
-        $('#data-content').innerHTML = renderJson(t);
-        setText($('#data-meta'), '单条任务 · JSON');
+        if (t.id) {
+          openTaskDetail(t.id);
+        } else {
+          $('#data-content').innerHTML = renderJson(t);
+          setText($('#data-meta'), '单条任务 · JSON');
+        }
       });
       ul.appendChild(li);
     }
@@ -815,6 +1072,7 @@ $('#refresh-all').addEventListener('click', () => {
   else if (state.tab === 'data')    loadDataList();
   else if (state.tab === 'dist')    loadDist();
   else if (state.tab === 'verify')  loadVerifyTail();
+  else if (state.tab === 'sources') loadSources();
   else if (state.tab === 'actions') refreshJobs();
   toast('已刷新', 'ok', { ttl: 1800 });
 });
@@ -902,15 +1160,31 @@ applyTheme(detectInitialTheme());
 $('#theme-toggle').addEventListener('click', toggleTheme);
 
 // ---------- search (global Ctrl+K) ----------
-const search = { open: false, q: '', timer: null, results: null, focused: -1 };
+const search = { open: false, q: '', timer: null, results: null, focused: -1, filters: { type: '', source: '', dateFrom: '', dateTo: '' }, sourceOptionsLoaded: false };
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function highlight(text, q) {
-  if (!q) return escapeHtml(text);
+  // XSS-safe: escape HTML first, then highlight matched terms.
   const esc = escapeHtml(text);
-  const qe  = escapeHtml(q);
+  if (!q) return esc;
+  // Parse query into highlightable terms:
+  //   - "quoted phrases" are treated as a single term
+  //   - field:value tokens (e.g. source:codex) are skipped
+  //   - -exclude tokens are skipped
+  //   - remaining space-separated words are individual terms
+  const terms = [];
+  const parts = String(q).match(/"[^"]+"|\S+/g) || [];
+  for (const part of parts) {
+    if (/^[a-zA-Z]+:/.test(part)) continue;      // skip field:value
+    if (part.charAt(0) === '-') continue;          // skip exclusions
+    const clean = part.replace(/^"|"$/g, '');      // strip surrounding quotes
+    if (clean.length >= 1) terms.push(clean);
+  }
+  if (!terms.length) return esc;
+  // Escape each term for regex AND for HTML (since we match against escaped text)
+  const pattern = terms.map(function (t) { return escapeRegex(escapeHtml(t)); }).join('|');
   try {
-    const re = new RegExp('(' + escapeRegex(qe) + ')', 'gi');
+    const re = new RegExp('(' + pattern + ')', 'gi');
     return esc.replace(re, '<mark>$1</mark>');
   } catch (_) { return esc; }
 }
@@ -918,6 +1192,8 @@ function highlight(text, q) {
 function openSearch() {
   if (search.open) return;
   search.open = true;
+  initSearchFilters();
+  renderSavedSearches();
   $('#search-overlay').classList.remove('hidden');
   setTimeout(() => $('#search-input').focus(), 0);
 }
@@ -929,6 +1205,8 @@ function closeSearch() {
   search.q = '';
   search.results = null;
   search.focused = -1;
+  // Hide help panel on close
+  const help = $('#search-help'); if (help) help.classList.add('hidden');
   $('#search-results').innerHTML = '<p class="muted small" style="padding:18px;text-align:center">输入关键词以搜索 任务 / 日志 / 报告</p>';
   $('#search-summary').textContent = '就绪';
 }
@@ -952,7 +1230,13 @@ async function runSearch(q) {
   $('#search-results').innerHTML = '<p class="search-empty">搜索中…</p>';
   $('#search-summary').textContent = '搜索 ' + q + ' …';
   try {
-    const r = await api('/api/search?q=' + encodeURIComponent(q) + '&limit=20');
+    let url = '/api/v1/search?q=' + encodeURIComponent(q) + '&limit=20';
+    const f = search.filters;
+    if (f.type)     url += '&type=' + encodeURIComponent(f.type);
+    if (f.source)   url += '&source=' + encodeURIComponent(f.source);
+    if (f.dateFrom) url += '&dateFrom=' + encodeURIComponent(f.dateFrom);
+    if (f.dateTo)   url += '&dateTo=' + encodeURIComponent(f.dateTo);
+    const r = await api(url);
     if (my !== searchSeq) return; // outdated
     search.results = r;
     search.focused = -1;
@@ -1041,21 +1325,26 @@ function jumpToResult(source, idxStr, r, q) {
       }
     }, 200);
   } else if (source === 'task') {
-    // 跳到数据 tab 的 tasks.json，并设类型筛选 + 搜索框
-    state.data.typeFilter = it.type || '';
-    state.tasks.type = it.type || '';
-    state.tasks.query = q || '';
-    state.tasks.offset = 0;
-    showTab('data');
-    if (state.data.current === 'tasks.json') {
-      loadTasksPage();
+    // Open task detail modal if we have an id; otherwise fall back to data tab
+    if (it.id) {
+      openTaskDetail(it.id);
     } else {
-      selectDataFile('tasks.json');
+      // 跳到数据 tab 的 tasks.json，并设类型筛选 + 搜索框
+      state.data.typeFilter = it.type || '';
+      state.tasks.type = it.type || '';
+      state.tasks.query = q || '';
+      state.tasks.offset = 0;
+      showTab('data');
+      if (state.data.current === 'tasks.json') {
+        loadTasksPage();
+      } else {
+        selectDataFile('tasks.json');
+      }
+      // 把搜索框填回去
+      setTimeout(() => { $('#tasks-search').value = state.tasks.query; }, 100);
+      // 滚动到任务列表
+      setTimeout(() => { if ($('#tasks-list')) $('#tasks-list').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
     }
-    // 把搜索框填回去
-    setTimeout(() => { $('#tasks-search').value = state.tasks.query; }, 100);
-    // 滚动到任务列表
-    setTimeout(() => { if ($('#tasks-list')) $('#tasks-list').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
   } else {
     // report
     showTab('reports');
@@ -1102,6 +1391,427 @@ document.addEventListener('keydown', (e) => {
     closeSearch();
   }
 });
+
+// ---------- search filters ----------
+const SEARCH_TYPE_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'codex', label: 'Codex' },
+  { value: 'thesis', label: 'Thesis' },
+  { value: 'document', label: 'Document' },
+  { value: 'openclaw', label: 'OpenClaw' },
+  { value: 'zotero', label: 'Zotero' },
+  { value: 'environment', label: 'Environment' },
+  { value: 'general', label: 'General' },
+  { value: 'unknown', label: 'Unknown' }
+];
+
+function initSearchFilters() {
+  // Populate type dropdown (idempotent)
+  const typeSel = $('#search-filter-type');
+  if (typeSel && typeSel.options.length <= 1) {
+    for (const opt of SEARCH_TYPE_OPTIONS) {
+      const o = document.createElement('option');
+      o.value = opt.value; o.textContent = opt.label;
+      typeSel.appendChild(o);
+    }
+  }
+  // Restore current filter values
+  if (typeSel) typeSel.value = search.filters.type;
+  const srcSel = $('#search-filter-source');
+  if (srcSel) srcSel.value = search.filters.source;
+  const fromInp = $('#search-filter-from');
+  if (fromInp) fromInp.value = search.filters.dateFrom;
+  const toInp = $('#search-filter-to');
+  if (toInp) toInp.value = search.filters.dateTo;
+  // Lazily populate source dropdown from /api/v1/sources
+  if (!search.sourceOptionsLoaded) populateSourceFilter();
+}
+
+async function populateSourceFilter() {
+  const srcSel = $('#search-filter-source');
+  if (!srcSel) return;
+  try {
+    const r = await api('/api/v1/sources');
+    const names = (r.sources || []).map(s => s.name || s.type).filter(Boolean);
+    // Keep "All" option, remove stale options
+    while (srcSel.options.length > 1) srcSel.remove(1);
+    for (const n of names) {
+      const o = document.createElement('option');
+      o.value = n; o.textContent = n;
+      srcSel.appendChild(o);
+    }
+    search.sourceOptionsLoaded = true;
+  } catch (_) { /* best-effort; dropdown stays with just "All" */ }
+}
+
+function onSearchFilterChange() {
+  const typeSel = $('#search-filter-type');
+  const srcSel  = $('#search-filter-source');
+  const fromInp = $('#search-filter-from');
+  const toInp   = $('#search-filter-to');
+  search.filters.type     = typeSel ? typeSel.value : '';
+  search.filters.source   = srcSel  ? srcSel.value  : '';
+  search.filters.dateFrom = fromInp ? fromInp.value : '';
+  search.filters.dateTo   = toInp   ? toInp.value   : '';
+  // Re-run search if there's a query
+  if (search.q.trim().length >= 2) {
+    clearTimeout(search.timer);
+    search.timer = setTimeout(() => runSearch(search.q), 200);
+  }
+}
+$('#search-filter-type').addEventListener('change', onSearchFilterChange);
+$('#search-filter-source').addEventListener('change', onSearchFilterChange);
+$('#search-filter-from').addEventListener('change', onSearchFilterChange);
+$('#search-filter-to').addEventListener('change', onSearchFilterChange);
+$('#search-filter-clear').addEventListener('click', () => {
+  search.filters = { type: '', source: '', dateFrom: '', dateTo: '' };
+  const typeSel = $('#search-filter-type'); if (typeSel) typeSel.value = '';
+  const srcSel  = $('#search-filter-source'); if (srcSel) srcSel.value = '';
+  const fromInp = $('#search-filter-from'); if (fromInp) fromInp.value = '';
+  const toInp   = $('#search-filter-to'); if (toInp) toInp.value = '';
+  // Also clear chip active states
+  $$('#search-chips .chip').forEach(c => c.classList.remove('active'));
+  if (search.q.trim().length >= 2) {
+    clearTimeout(search.timer);
+    search.timer = setTimeout(() => runSearch(search.q), 200);
+  }
+});
+
+// ---------- P3-1: search help toggle ----------
+$('#search-help-toggle').addEventListener('click', () => {
+  const panel = $('#search-help');
+  if (panel) panel.classList.toggle('hidden');
+});
+
+// ---------- P3-2: quick filter chips ----------
+function isoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+$('#search-chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  if (chip.id === 'search-chips-clear') {
+    // Clear all chips + filters
+    $$('#search-chips .chip').forEach(c => c.classList.remove('active'));
+    search.filters.dateFrom = '';
+    search.filters.dateTo = '';
+    search.filters.source = '';
+    const srcSel = $('#search-filter-source'); if (srcSel) srcSel.value = '';
+    const fromInp = $('#search-filter-from'); if (fromInp) fromInp.value = '';
+    const toInp = $('#search-filter-to'); if (toInp) toInp.value = '';
+    if (search.q.trim().length >= 2) {
+      clearTimeout(search.timer);
+      search.timer = setTimeout(() => runSearch(search.q), 200);
+    }
+    return;
+  }
+  // Toggle active state
+  const wasActive = chip.classList.contains('active');
+  if (chip.dataset.chipTime) {
+    // Deactivate sibling time chips
+    $$('#search-chips .chip[data-chip-time]').forEach(c => c.classList.remove('active'));
+    if (wasActive) {
+      // Clear date filter
+      search.filters.dateFrom = '';
+      search.filters.dateTo = '';
+      const fromInp = $('#search-filter-from'); if (fromInp) fromInp.value = '';
+      const toInp = $('#search-filter-to'); if (toInp) toInp.value = '';
+    } else {
+      chip.classList.add('active');
+      const now = new Date();
+      search.filters.dateTo = isoDate(now);
+      if (chip.dataset.chipTime === 'week') {
+        const day = now.getDay() || 7; // Monday = 1
+        const monday = new Date(now.getTime() - (day - 1) * 86400000);
+        search.filters.dateFrom = isoDate(monday);
+      } else if (chip.dataset.chipTime === 'month') {
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        search.filters.dateFrom = isoDate(first);
+      }
+      const fromInp = $('#search-filter-from'); if (fromInp) fromInp.value = search.filters.dateFrom;
+      const toInp = $('#search-filter-to'); if (toInp) toInp.value = search.filters.dateTo;
+    }
+  } else if (chip.dataset.chipSource) {
+    if (wasActive) {
+      chip.classList.remove('active');
+      search.filters.source = '';
+    } else {
+      $$('#search-chips .chip[data-chip-source]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      search.filters.source = chip.dataset.chipSource;
+    }
+    const srcSel = $('#search-filter-source'); if (srcSel) srcSel.value = search.filters.source;
+  }
+  // Re-run search if there's a query
+  if (search.q.trim().length >= 2) {
+    clearTimeout(search.timer);
+    search.timer = setTimeout(() => runSearch(search.q), 200);
+  }
+});
+
+// ---------- P3-3: saved searches ----------
+const SAVED_SEARCH_KEY = 'cjl-saved-searches';
+function loadSavedSearches() {
+  try {
+    const raw = localStorage.getItem(SAVED_SEARCH_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (_) { return []; }
+}
+function saveSavedSearches(list) {
+  try { localStorage.setItem(SAVED_SEARCH_KEY, JSON.stringify(list)); } catch (_) {}
+}
+function renderSavedSearches() {
+  const host = $('#search-saved-list');
+  if (!host) return;
+  const list = loadSavedSearches();
+  host.innerHTML = '';
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    const item = document.createElement('div');
+    item.className = 'saved-search-item';
+    item.innerHTML = '<span class="ss-name">' + escapeHtml(s.name || '(unnamed)') + '</span>'
+      + '<span class="ss-q" title="' + escapeHtml(s.q || '') + '">' + escapeHtml(s.q || '') + '</span>'
+      + '<button class="ss-delete" title="删除">&times;</button>';
+    item.addEventListener('click', (e) => {
+      if (e.target.classList.contains('ss-delete')) return;
+      // Re-execute saved search
+      search.q = s.q || '';
+      search.filters = Object.assign({ type: '', source: '', dateFrom: '', dateTo: '' }, s.filters || {});
+      $('#search-input').value = search.q;
+      const typeSel = $('#search-filter-type'); if (typeSel) typeSel.value = search.filters.type;
+      const srcSel  = $('#search-filter-source'); if (srcSel) srcSel.value = search.filters.source;
+      const fromInp = $('#search-filter-from'); if (fromInp) fromInp.value = search.filters.dateFrom;
+      const toInp   = $('#search-filter-to'); if (toInp) toInp.value = search.filters.dateTo;
+      // Clear chip active states
+      $$('#search-chips .chip').forEach(c => c.classList.remove('active'));
+      runSearch(search.q);
+    });
+    item.querySelector('.ss-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const updated = loadSavedSearches().filter((_, idx) => idx !== i);
+      saveSavedSearches(updated);
+      renderSavedSearches();
+      toast('已删除搜索: ' + (s.name || '(unnamed)'), 'info', { ttl: 2000 });
+    });
+    host.appendChild(item);
+  }
+}
+$('#search-save-current').addEventListener('click', () => {
+  const q = search.q.trim();
+  if (q.length < 2) {
+    toast('请先输入搜索关键词再保存', 'warn');
+    return;
+  }
+  const name = prompt('保存搜索名称 / Save search as:', q.slice(0, 30));
+  if (!name) return;
+  const list = loadSavedSearches();
+  // Remove duplicates with same name
+  const filtered = list.filter(s => s.name !== name);
+  filtered.unshift({
+    name: name,
+    q: q,
+    filters: Object.assign({}, search.filters),
+    savedAt: new Date().toISOString()
+  });
+  // Keep max 10
+  if (filtered.length > 10) filtered.length = 10;
+  saveSavedSearches(filtered);
+  renderSavedSearches();
+  toast('已保存搜索: ' + name, 'ok', { ttl: 2000 });
+});
+// Render saved searches when overlay opens (called from openSearch)
+
+// ---------- task detail modal ----------
+async function openTaskDetail(id) {
+  const overlay = $('#task-detail-overlay');
+  const body = $('#td-body');
+  const titleEl = $('#td-title');
+  overlay.classList.remove('hidden');
+  titleEl.textContent = '加载中…';
+  body.innerHTML = '<div class="td-loading">正在获取任务详情…</div>';
+  try {
+    const task = await api('/api/v1/tasks/' + encodeURIComponent(id));
+    renderTaskDetail(task);
+  } catch (e) {
+    titleEl.textContent = '错误';
+    body.innerHTML = '<div class="td-error">获取任务详情失败: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function closeTaskDetail() {
+  $('#task-detail-overlay').classList.add('hidden');
+  $('#td-body').innerHTML = '';
+  $('#td-title').textContent = 'Task Detail';
+}
+
+function renderTaskDetail(t) {
+  const titleEl = $('#td-title');
+  const body = $('#td-body');
+  titleEl.textContent = t.title || '(无标题)';
+  const type = (t.taskType || 'unknown').toLowerCase();
+  const keywords = Array.isArray(t.keywords) ? t.keywords : [];
+
+  const row = (key, val, extraClass) => {
+    if (val == null || val === '') return '';
+    return '<div class="td-row"><span class="td-key">' + escapeHtml(key) + '</span>'
+      + '<span class="td-val' + (extraClass || '') + '">' + escapeHtml(val) + '</span></div>';
+  };
+
+  let html = '';
+
+  // P2-5: action buttons
+  const hasValidDate = t.date && t.date !== 'unknown' && /^\d{4}-\d{2}-\d{2}$/.test(t.date);
+  html += '<div class="td-actions">';
+  if (hasValidDate) {
+    html += '<button class="btn ghost" id="td-view-log">查看日志 / View Log</button>';
+  }
+  html += '<button class="btn ghost" id="td-copy-json">复制 JSON / Copy JSON</button>';
+  html += '</div>';
+
+  html += row('ID', t.id);
+  html += row('Type', typeLabel(type));
+  html += row('Source', t.source);
+  html += row('Date', t.date);
+  html += row('Time', t.time);
+  html += row('Messages', t.messageCount != null ? String(t.messageCount) : '');
+  html += row('First', t.firstTimestamp);
+  html += row('Last', t.lastTimestamp);
+  html += row('Project', t.projectPath);
+
+  if (keywords.length) {
+    html += '<div class="td-section"><div class="td-section-title">Keywords</div><div class="td-chips">'
+      + keywords.map(k => '<span class="td-chip">' + escapeHtml(k) + '</span>').join('')
+      + '</div></div>';
+  }
+  if (t.userSummary) {
+    html += '<div class="td-section"><div class="td-section-title">User Summary</div><div class="td-summary">' + escapeHtml(t.userSummary) + '</div></div>';
+  }
+  if (t.assistantSummary) {
+    html += '<div class="td-section"><div class="td-section-title">Assistant Summary</div><div class="td-summary">' + escapeHtml(t.assistantSummary) + '</div></div>';
+  }
+  if (t.rawFilePath) {
+    html += '<div class="td-section"><div class="td-section-title">Raw File</div><div class="td-summary">' + escapeHtml(t.rawFilePath) + '</div></div>';
+  }
+  body.innerHTML = html;
+
+  // P2-5: bind action buttons
+  const viewLogBtn = $('#td-view-log');
+  if (viewLogBtn) {
+    viewLogBtn.addEventListener('click', () => {
+      closeTaskDetail();
+      state.journal.current = t.date + '.md';
+      showTab('journal');
+      openJournal(t.date + '.md');
+    });
+  }
+  const copyBtn = $('#td-copy-json');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const json = JSON.stringify(t, null, 2);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(json).then(
+          () => toast('已复制 JSON 到剪贴板', 'ok', { ttl: 2000 }),
+          () => toast('复制失败', 'err')
+        );
+      } else {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = json; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast('已复制 JSON 到剪贴板', 'ok', { ttl: 2000 }); }
+        catch (_) { toast('复制失败', 'err'); }
+        document.body.removeChild(ta);
+      }
+    });
+  }
+}
+$('#td-close').addEventListener('click', closeTaskDetail);
+$('#task-detail-backdrop').addEventListener('click', closeTaskDetail);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#task-detail-overlay').classList.contains('hidden')) {
+    closeTaskDetail();
+  }
+});
+
+// ---------- heatmap week selector ----------
+$('#heatmap-weeks').addEventListener('change', (e) => {
+  state.dashboard.heatmapWeeks = parseInt(e.target.value, 10) || 12;
+  renderHeatmap($('#daily-chart'), state.dashboard.byDay, state.dashboard.heatmapWeeks, { messages: state.dashboard.byDayMessages, journalSize: state.dashboard.byDayJournalSize });
+});
+
+// ---------- P2-4: recent activity filter listeners ----------
+$('#recent-source-filter').addEventListener('change', (e) => {
+  state.dashboard.recentSource = e.target.value;
+  applyRecentFilter();
+});
+$('#recent-type-filter').addEventListener('change', (e) => {
+  state.dashboard.recentType = e.target.value;
+  applyRecentFilter();
+});
+$('#recent-filter-clear').addEventListener('click', () => {
+  state.dashboard.recentSource = '';
+  state.dashboard.recentType = '';
+  $('#recent-source-filter').value = '';
+  $('#recent-type-filter').value = '';
+  renderRecentTasks(state.dashboard.lastTasks);
+});
+
+// ---------- sources ----------
+async function loadSources() {
+  const host = $('#sources-list');
+  const meta = $('#sources-meta');
+  if (host) host.innerHTML = '<div class="td-loading">正在探测源…</div>';
+  if (meta) meta.textContent = '探测中…';
+  try {
+    const r = await api('/api/v1/sources');
+    state.sources.items = r.sources || [];
+    state.sources.loaded = true;
+    renderSources(state.sources.items);
+    if (meta) meta.textContent = '探测于 ' + fmtDate(r.generatedAt) + ' · ' + state.sources.items.length + ' 个源';
+  } catch (e) {
+    if (host) host.innerHTML = '<div class="td-error">探测失败: ' + escapeHtml(e.message) + '</div>';
+    if (meta) meta.textContent = '失败';
+  }
+}
+
+function renderSources(sources) {
+  const host = $('#sources-list');
+  if (!host) return;
+  host.innerHTML = '';
+  if (!sources || !sources.length) {
+    host.innerHTML = '<p class="muted small" style="padding:18px;text-align:center">没有已启用的源。请在 config.json 中启用至少一个源。</p>';
+    return;
+  }
+  for (const s of sources) {
+    const card = document.createElement('div');
+    card.className = 'source-card';
+    let statusCls = 'ok', statusText = 'OK';
+    if (s.error) { statusCls = 'error'; statusText = 'ERROR'; }
+    else if (s.exists === false) { statusCls = 'miss'; statusText = 'NOT FOUND'; }
+    else if (s.exists === true) { statusCls = 'ok'; statusText = 'OK'; }
+
+    let metaHtml = '';
+    if (s.sessionsDir) metaHtml += '<div><span class="label">dir:</span> ' + escapeHtml(s.sessionsDir) + '</div>';
+    if (s.files != null) metaHtml += '<div><span class="label">files:</span> ' + s.files + '</div>';
+    if (s.missing != null) metaHtml += '<div><span class="label">missing:</span> ' + s.missing + '</div>';
+    if (s.scannedAt) metaHtml += '<div><span class="label">scanned:</span> ' + escapeHtml(s.scannedAt) + '</div>';
+    if (s.source) metaHtml += '<div><span class="label">source:</span> ' + escapeHtml(s.source) + '</div>';
+
+    let errorHtml = '';
+    if (s.error) errorHtml = '<div class="source-card-error">' + escapeHtml(s.error) + '</div>';
+
+    card.innerHTML = '<div class="source-card-head">'
+      + '<span class="source-card-name">' + escapeHtml(s.name || s.type || '?') + '</span>'
+      + '<span class="source-card-type">' + escapeHtml(s.type || '?') + '</span></div>'
+      + '<span class="source-status ' + statusCls + '"><span class="dot"></span>' + statusText + '</span>'
+      + '<div class="source-card-meta">' + metaHtml + '</div>'
+      + errorHtml;
+    host.appendChild(card);
+  }
+}
+$('#sources-refresh').addEventListener('click', loadSources);
 
 // ---------- boot ----------
 const initialHash = (window.location.hash || '').replace(/^#/, '');
