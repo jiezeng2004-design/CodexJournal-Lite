@@ -288,7 +288,7 @@ documentation, and test fixtures.
 ## Release Packaging
 
 Public release packages are generated automatically by GitHub Actions when a
-version tag such as `v1.4.1` is pushed.
+version tag such as `v1.4.2` is pushed.
 
 The release workflow builds:
 
