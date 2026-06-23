@@ -5,6 +5,12 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+## [1.4.2] - 2026-06-23
+
+### Fixed
+- Corrected the CLI help text to report all 19 release-readiness checks.
+- Added a regression assertion so the displayed release-check count stays aligned with the implementation.
+
 ## [1.4.1] - 2026-06-23
 
 ### Fixed

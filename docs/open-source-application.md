@@ -17,11 +17,11 @@ Repository: https://github.com/jiezeng2004-design/CodexJournal-Lite
 
 npm package: https://www.npmjs.com/package/codexjournal-lite
 
-Current package version: `1.4.1`
+Current package version: `1.4.2`
 
 Package status: published on npm registry
 
-Latest GitHub Release: https://github.com/jiezeng2004-design/CodexJournal-Lite/releases/tag/v1.4.1
+Latest GitHub Release: https://github.com/jiezeng2004-design/CodexJournal-Lite/releases/tag/v1.4.2
 
 License: MIT
 
@@ -103,8 +103,8 @@ See [docs/privacy.md](privacy.md) for the detailed privacy contract.
 - Zero runtime npm dependencies.
 - GitHub Actions CI for fresh-clone verification on ubuntu, macOS, and Windows.
 - Public release packaging workflow for version tags.
-- Latest public release includes `CodexJournal-Lite-v1.4.1-public.zip` and
-  `CodexJournal-Lite-v1.4.1-public.zip.sha256`.
+- Latest public release includes `CodexJournal-Lite-v1.4.2-public.zip` and
+  `CodexJournal-Lite-v1.4.2-public.zip.sha256`.
 - Public ZIP verification via `npm run verify:public-zip`.
 - Screenshot-backed README showing the local dashboard.
 - Dedicated privacy documentation in `docs/privacy.md`.
