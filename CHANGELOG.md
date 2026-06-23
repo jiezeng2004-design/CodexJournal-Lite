@@ -5,9 +5,322 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+## [1.4.1] - 2026-06-23
+
+### Fixed
+- Fixed issue template version placeholder.
+- Strengthened release-check stale-version coverage (ISSUE_TEMPLATE + screenshot refs).
+- Made doctor output distinguish required failures from optional missing user data (WARN in default mode, --strict for full check).
+- Added a complete `npm test` entry point and included tag, cluster, and migration tests in the full verification gate.
+- Corrected the release checklist to use the protected-branch PR workflow and all 19 release checks.
+- Replaced stale, hard-coded GitHub Release notes with the matching CHANGELOG section.
+
+### Changed
+- Clarified that bundled dashboard screenshots are legacy previews rather than current v1.4.x captures.
+- Updated release-facing version references to v1.4.1.
+
+## [1.4.0] - workspace console, dashboard intelligence, source doctor, and release readiness
+
+- Fixed Dashboard heatmap week scaling.
+- Removed stale release references.
+- Added workspace-root support for console and doctor.
+- Added Dashboard project activity, task detail, improved summaries.
+- Added Search UX help, filter chips, saved searches, and result highlighting.
+- Added source-doctor and richer source adapter diagnostics.
+- Added release readiness report.
+- Added root/source/release tests.
+- Added long-term ROADMAP.
+
+## [1.2.0] - Dashboard UX, field search, and OpenCode adapter compatibility
+
+### Fixed
+- OpenCode adapter: export command updated from the non-existent
+  `opencode session export --session <id> --format json` to the correct
+  top-level `opencode export <sessionID>` command. Legacy command is tried
+  as a fallback for older OpenCode versions.
+- OpenCode adapter: CLI mode error messages are now sanitized via
+  `sanitize.redactText()` before being written to `reports/errors.log`,
+  preventing sensitive paths or credentials from leaking via stderr.
+- Console light theme: `input[type=search]` background no longer uses
+  `var(--code)` (which was dark `#0f172a` in both themes). A new
+  `--input-bg` CSS variable provides `#ffffff` in light theme and
+  `#1a212c` in dark theme.
+- Journal content area: empty state (`No journal entries for this date.`)
+  and error state (`Failed to load journal/YYYY-MM-DD.md`) now display
+  styled messages instead of raw text or blank space.
+
 ### Added
-- `docs/open-source-application.md` with a reviewer-friendly evidence summary
-  for open-source maintainer support applications.
+- Structured search with field syntax: `source:`, `type:`, `date:`,
+  `from:`, `to:`, `title:`, `keyword:`, `path:`. Supports quoted phrases
+  (`"REST API"`) and negative filters (`-source:codex`).
+- New `src/searchQuery.js` module with `parseSearchQuery()` and
+  `matchTask()` functions — zero dependencies, Node.js built-ins only.
+- New `src/searchQuery.test.js` with 46 tests covering parsing, field
+  matching, date ranges, phrases, and negative filters.
+- New `src/console.smoke.test.js` UI regression smoke test (20 checks)
+  covering index.html version, CSS light theme inputs, dashboard API
+  structure, search field support, journal error handling, and heatmap
+  CSS variables.
+- New `npm run test:console` script.
+- Dashboard heatmap: CSS variables `--heatmap-cell-size` (14px) and
+  `--heatmap-cell-gap` (4px) for configurable sizing. Cell size increased
+  from 12px to 14px.
+- Dashboard heatmap: custom hover tooltip showing date and task count,
+  replacing the native SVG `<title>` element.
+- Dashboard: `--dashboard-max-width` (1480px) for better wide-screen
+  utilization (was 1380px).
+- Top Keywords: dedicated `renderKeywords()` function with optimized
+  layout (keyword + bar + count per row).
+- Search UI: updated placeholder with field syntax examples and added
+  syntax hint text in search footer.
+
+### Changed
+- `test:sources` script now includes `searchQuery.test.js`.
+- `smoke` script now includes `console.smoke.test.js`.
+- `verify.js` Section B2 now runs `test:console`.
+- OpenCode adapter uses `cp.spawnSync` instead of destructured `spawnSync`
+  to allow CLI mode testing via mock.
+- Recent Activity layout adjusted to `72px 60px 1fr` grid with title
+  truncation via `text-overflow: ellipsis`.
+
+### Documentation
+- Updated `docs/sources.md`: OpenCode adapter command reference (`opencode
+  export <sessionID>`), fallback behavior, and known limitations.
+- Updated `docs/usage.md`: Added Search Syntax section with field, phrase,
+  and negative filter examples.
+- Updated `README.md`: OpenCode source config, search syntax examples,
+  troubleshooting notes.
+
+## [1.1.2] - keyword privacy and preview hardening
+
+### Fixed
+- `keywords` field is now sanitized in `sanitizeTaskForExport()`, preventing
+  API keys and tokens from leaking into `data/tasks.json`.
+- `writer.buildJournal()`, `writer.buildSearch()`, `writer.buildStats()`, and
+  `writer.buildDashboard()` now use `sanitize.redactKeywords()` for all
+  keyword output, so `journal/*.md`, `data/search.md`, `data/stats.json`, and
+  `reports/dashboard.md` no longer contain credential-like tokens.
+- `classifier.tokenize()` now filters credential-like tokens (`sk-`, `ghp_`,
+  `xoxb-`, `token`, `api_key`, `password`, `secret`, etc.) so they are never
+  promoted to keywords in the first place.
+- `preview` command now probes all enabled + archive-enabled sources by
+  default, not just Codex. Missing Codex sessionsDir only produces a warning
+  and does not block Claude/Gemini/OpenCode preview.
+- `cfg.configPath` now correctly reflects the actual config file path when
+  `--config` is passed (e.g. `/tmp/custom-name.json`).
+- `archive.integration.test.js` cleanup now uses `fs.rmSync()` for cross-
+  platform compatibility instead of Windows-only `rmdir`.
+- `console/public/index.html` no longer hard-codes `v1.1.1`; version is now
+  rendered dynamically from `/api/dashboard`.
+
+### Added
+- `sanitize.redactKeywords()` and `sanitize.isCredentialKeyword()` helpers.
+- Privacy acceptance test: after archiving Claude/Gemini/OpenCode fixtures,
+  grep all outputs to verify `sk-test1234567890abcdef` does not leak.
+- `npm run test:privacy` script and verification coverage in `verify.js`
+  Section B2 and GitHub Actions CI.
+
+## [1.1.1] - archive contract and workspace root hardening
+
+### Fixed
+- Multi-source archive no longer aborts when Codex sessions dir is missing;
+  other enabled sources (Claude, Gemini, OpenCode) still collect and write tasks.
+- IDEA/JetBrains is now explicitly `archive: false` (inventory-only) in
+  `config.json` and `DEFAULT_CONFIG`, matching the documented contract.
+  `idea.collect()` is retained as experimental but not called by default archive.
+- `writeEmptyOutputs()` now sanitizes `sessionsDir` in output metadata.
+- `console/server.js` `--skip-archive` parameter casing fixed (was `--SkipArchive`).
+- Stale `0.6.x` and `0.4.1` version references removed from docs, UI, issue
+  templates, and generated report text.
+- `changelog` command output renamed from `reports/changelog.md` to
+  `reports/fingerprint-changes.md` to prevent npm from auto-including the
+  generated file in the published tarball (npm treats `changelog.md` as a
+  always-include CHANGELOG variant).
+- Added `.npmignore` to explicitly exclude generated data/journal/reports/dist
+  files from the npm tarball.
+
+### Added
+- `--root <path>` CLI parameter and `CODEXJOURNAL_ROOT` env var for npx/global
+  workspace root override. Output dirs (data/journal/reports) now write to
+  `WORKSPACE_ROOT` (defaults to `process.cwd()`), not the npm package directory.
+- `APP_ROOT` / `WORKSPACE_ROOT` split in `src/index.js` and `src/config.js`.
+- `src/archive.integration.test.js` with 6 test scenarios (16 assertions)
+  covering multi-source dispatch, missing dirs, IDEA exclusion, and workspace
+  isolation.
+- `npm run test:archive` script.
+- `sanitize.sanitizeTaskWithDiff()` — returns redaction count and pattern names
+  without exposing original secrets.
+- Preview command now shows `redactions: N (pattern1, pattern2)` per task.
+- Sanitizer tests for `redactWithDiff` and `sanitizeTaskWithDiff`.
+- `verify.js` Section B2: runs `test:sanitize`, `test:sources`, `test:archive`.
+- Smoke test now covers multi-source fixture archive.
+
+### Changed
+- `verify:fresh` fresh-mode items changed from WARN to INFO (expected-empty
+  in fresh clone, not user-actionable warnings).
+- `config.js` `loadConfig()` now accepts `(workspaceRoot, appRoot, overrides)`.
+  Relative `sessionsDir`/`logDirs` resolve against config file directory;
+  `dataDir`/`journalDir`/`reportsDir` resolve against `WORKSPACE_ROOT`.
+- `sources/index.js` `collectAll()` now supports `archiveOnly` option and
+  `shouldArchiveSource()` / `isSourceArchiveEnabled()` helpers.
+- `package.json` version bumped to `1.1.1`.
+
+## [1.1.0] - multi-source adapter architecture
+
+### Added
+- Multi-source adapter architecture: Claude Code, Gemini CLI, and OpenCode
+  source adapters (`src/sources/claude.js`, `src/sources/gemini.js`,
+  `src/sources/opencode.js`) that produce the same 14-field task records as
+  Codex. All enabled sources are collected in a single `archive` run.
+- Plugin auto-discovery: `src/sources/index.js` scans the `src/sources/`
+  directory for adapter modules at runtime. External plugins can also be
+  loaded from `config.json -> plugins[]` (array of file paths).
+- `src/sources/base-adapter.js` defining the standard adapter interface
+  contract (`name`, `type`, `getDefaultDir`, `describe`, `probe`, `collect`).
+- Stable API v1 for the dashboard: `GET /api/v1/tasks/:id` (single task full
+  detail), `GET /api/v1/sources` (all registered source statuses via
+  `probeAll`), `GET /api/v1/search` (global search with `type`, `source`,
+  `dateFrom`, `dateTo` filters). Old routes kept as backward-compatible
+  aliases.
+- Dashboard enhancements: search filters (type, source, date range), task
+  detail overlay, heatmap week-count selector, and a source status panel
+  that probes all registered sources.
+- `--sessions-dir`, `--config`, and `--source` CLI parameters for overriding
+  the sessions directory, config file path, and source filter (preview only)
+  without editing `config.json`.
+- `CODEXJOURNAL_SESSIONS_DIR` environment variable as an alternative to
+  `--sessions-dir`.
+- First-run detection and guided onboarding: when no archived data is found,
+  the CLI prints default session directory locations for all supported
+  sources.
+- `codexjournal` shorthand command registered alongside `codexjournal-lite`
+  in `package.json -> bin`.
+- `npm run smoke` zero-dependency smoke test (`scripts/smoke-test.js`) that
+  verifies the CLI end-to-end: help, check, preview, archive, npm pack, and
+  adapter auto-discovery.
+- `scripts/verify.sh` POSIX shell wrapper for the cross-platform Node.js
+  verify script.
+- `scripts/archive.sh` POSIX shell wrapper for the archive command.
+- macOS home path redaction (`/Users/<name>/`) in `src/sanitize.js`.
+- Custom `redactPatterns` config hook with `flags` field support: users can
+  define additional redaction rules in `config.json -> redactPatterns[]` with
+  `pattern`, `replacement`, `flags`, and optional `name` fields.
+- `redactWithDiff()` in `src/sanitize.js` that returns both the redacted
+  result and a list of individual redactions applied, enabling the preview
+  command to show a redaction diff view.
+- `--source` flag for `preview` command to probe and preview a specific
+  source adapter.
+- Offline fixture tests for Claude Code, Gemini CLI, and OpenCode adapters
+  (`src/sources/claude.test.js`, `src/sources/gemini.test.js`,
+  `src/sources/opencode.test.js`).
+- Test fixtures for Claude Code sessions, Gemini CLI checkpoints, and
+  OpenCode exports under `test-fixtures/`.
+
+### Changed
+- Cross-platform CI matrix: GitHub Actions now runs on `ubuntu-latest`,
+  `macos-latest`, and `windows-latest` with Node 20 and 22.
+- `package.json` version bumped to `1.1.0`; description updated to reflect
+  multi-source support.
+- `config.json -> sources[]` now includes `claude-code` (enabled),
+  `gemini-cli` (disabled by default), and `opencode` (disabled by default,
+  `mode: cli`).
+- The `archive` command now collects tasks from all enabled sources, not
+  just Codex. Source-level stats are printed during the run.
+- `src/paths.js` is now the single source of truth for cross-platform path
+  expansion and default session directories, used by all adapters.
+
+### Fixed
+- `console/server.js` `--skip-archive` flag was not passed correctly to the
+  verify command in the dashboard job runner. The flag is now forwarded
+  through the command allowlist.
+
+## [1.0.0] - stable local dashboard and API
+
+### Added
+- Stable API v1 endpoints for the localhost dashboard, providing
+  backward-compatible aliases for task detail, source status, and filtered
+  search.
+- Dashboard task detail overlay: click any task to see full metadata
+  including summaries, timestamps, keywords, and source attribution.
+- Dashboard heatmap week-count selector: choose how many weeks of activity
+  to display (default 12).
+- Dashboard source status panel: probe all registered sources and display
+  their existence, file counts, and errors.
+
+### Changed
+- Dashboard search now supports filtering by task type, source, and date
+  range in addition to free-text query.
+- Dashboard tabs use icon-first controls for denser navigation.
+
+## [0.9.0] - redaction and privacy preview
+
+### Added
+- `npm run preview` now shows a redaction diff view: new and changed
+  sessions are displayed with their redacted title, type, and message count
+  before any file is written.
+- `redactWithDiff()` function in `src/sanitize.js` that returns both the
+  redacted result and a list of applied redactions for transparency.
+- Custom `redactPatterns` config hook: users can define additional redaction
+  rules in `config.json -> redactPatterns[]` with `pattern`, `replacement`,
+  and `flags` fields.
+- `sanitize.setCustomPatterns()` to load custom patterns from config at
+  startup.
+
+### Changed
+- `redactText()` now applies custom patterns from config after built-in
+  patterns.
+
+## [0.8.0] - cross-platform support
+
+### Added
+- Cross-platform CI: GitHub Actions now runs verification on
+  `ubuntu-latest`, `macos-latest`, and `windows-latest`.
+- `scripts/verify.sh` POSIX shell wrapper for the Node.js verify script.
+- `scripts/archive.sh` POSIX shell wrapper for the archive command.
+- macOS home path redaction (`/Users/<name>/`) in `src/sanitize.js`.
+- `src/paths.js` cross-platform path utilities supporting Windows env vars
+  (`%USERPROFILE%`, `%APPDATA%`, `%LOCALAPPDATA%`), Unix env vars (`$HOME`,
+  `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME`), and tilde expansion (`~/`).
+
+### Changed
+- All source adapters and config resolution now use `src/paths.js` for
+  cross-platform path expansion instead of scattered `expandEnv()`
+  implementations.
+- Default session directories are computed per-platform for each source type.
+
+## [0.7.0] - npm package hardening and one-command startup
+
+### Added
+- `codexjournal` shorthand command registered in `package.json -> bin`
+  alongside `codexjournal-lite`.
+- First-run detection: when no archived data is found, the CLI prints
+  default session directory locations for all supported sources to guide
+  new users.
+- `npm run smoke` zero-dependency smoke test (`scripts/smoke-test.js`) that
+  verifies the CLI end-to-end in a fresh environment.
+- `--sessions-dir`, `--config`, and `--source` CLI parameters for overriding
+  configuration without editing `config.json`.
+- `CODEXJOURNAL_SESSIONS_DIR` environment variable as an alternative to
+  `--sessions-dir`.
+
+### Changed
+- `npm run verify` and `npm run verify:fresh` now work cross-platform via
+  Node.js, not only Windows PowerShell.
+
+## [0.6.6] - unified path utilities and adapter extraction
+
+### Added
+- `src/paths.js` unified cross-platform path utilities: `expandEnv()`,
+  `defaultSessionsDir()`, `joinSafe()`, `isWindows()`, `homeDir()`. Replaces
+  scattered `expandEnv()` implementations in `config.js`, `idea.js`, and
+  `verify.js` with a single source of truth.
+
+### Changed
+- IDEA / JetBrains log scanning logic extracted into the standard adapter
+  interface (`src/sources/idea.js`), conforming to the same `probe` /
+  `collect` contract as other source adapters.
+- `src/sources/idea-parser.js` extracted as a standalone module for IDEA log
+  parsing, with offline fixture test coverage.
 
 ## [0.6.5] - cross-platform verify and source parsing preview
 
@@ -15,7 +328,7 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - Cross-platform Node.js verification entrypoint: `npm run verify` and `npm run verify:fresh` now work outside Windows PowerShell.
 - Windows-only legacy verification remains available as `npm run verify:ps1`.
 - `npm run preview` to show new or changed Codex sessions without writing archive outputs.
-- `npm run changelog` to write a local `reports/changelog.md` summary from session fingerprint changes.
+- `npm run changelog` to write a local `reports/fingerprint-changes.md` summary from session fingerprint changes.
 - IDEA AI Assistant log parser with offline fixture coverage.
 - Claude Code source registry stub and read-only probe scaffold for future archive integration.
 - Optional `redactPatterns` config hook for local custom redaction rules.

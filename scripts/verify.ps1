@@ -485,7 +485,7 @@ if (-not (Test-Path -LiteralPath $GitCommitPs1)) {
 Write-Info "I: $InstallTaskPs1 was NOT invoked by verify. Scheduled tasks are never created by this script."
 
 # ============================================================ K. scan-sources safety
-Write-Section 'K. scan-sources safety (v0.4.1)'
+Write-Section 'K. scan-sources safety'
 
 # 0. Run the offline test-suite first. It exercises the IDEA / JetBrains
 #    probe against the synthetic tree under test-fixtures/idea-logs/
@@ -500,7 +500,7 @@ if ($testSourcesExit -eq 0) {
 }
 
 # 1. Snapshot SHA-256 of every file that scan-sources is contractually
-#    forbidden to touch. In v0.4.1 the allowlist for mutation is
+#    forbidden to touch. The allowlist for mutation is
 #    exactly: `reports/idea-log-inventory.md` and
 #    `reports/source-scan-summary.json`. Everything else is forbidden.
 $protectedPaths = @(

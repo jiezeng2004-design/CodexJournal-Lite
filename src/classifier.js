@@ -100,6 +100,14 @@ function classifyText(text) {
   return 'general';
 }
 
+// Credential-like tokens that should never be treated as keywords.
+const CREDENTIAL_RE = /^(sk-[a-z0-9_\-]+|gh[pousr]_[a-z0-9]+|xox[baprs]-[a-z0-9\-]+|token|api_key|apikey|password|secret|access_token|refresh_token|bearer|authorization|connect\.sid|sessionid)$/i;
+
+function isCredentialToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  return CREDENTIAL_RE.test(token);
+}
+
 function tokenize(text) {
   if (!text) return [];
   const out = [];
@@ -107,6 +115,7 @@ function tokenize(text) {
   const enTokens = text.toLowerCase().match(/[a-z][a-z0-9_.\-]{2,}/g) || [];
   for (const t of enTokens) {
     if (STOPWORDS.has(t)) continue;
+    if (isCredentialToken(t)) continue;
     out.push(t);
   }
   // Chinese bigrams

@@ -6,7 +6,7 @@
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1
-#   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1 -ZipPath "dist/CodexJournal-Lite-v0.6.2-public.zip"
+#   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1 -ZipPath "dist/CodexJournal-Lite-v1.4.1-public.zip"
 
 [CmdletBinding()]
 param(

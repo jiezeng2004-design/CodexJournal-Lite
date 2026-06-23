@@ -11,20 +11,39 @@
       "name": "codex",
       "type": "codex",
       "enabled": true,
+      "archive": true,
       "sessionsDir": "%USERPROFILE%/.codex/sessions"
-    },
-    {
-      "name": "idea-ai",
-      "type": "idea",
-      "enabled": true,
-      "logDirs": []
     },
     {
       "name": "claude-code",
       "type": "claude",
       "enabled": true,
+      "archive": true,
+      "sessionsDir": ""
+    },
+    {
+      "name": "idea-ai",
+      "type": "idea",
+      "enabled": true,
+      "archive": false,
+      "logDirs": []
+    },
+    {
+      "name": "gemini-cli",
+      "type": "gemini",
+      "enabled": false,
+      "archive": true,
+      "sessionsDir": ""
+    },
+    {
+      "name": "opencode",
+      "type": "opencode",
+      "enabled": false,
+      "archive": true,
+      "mode": "cli",
       "sessionsDir": ""
     }
   ],
-  "redactPatterns": []
+  "redactPatterns": [],
+  "plugins": []
 }
