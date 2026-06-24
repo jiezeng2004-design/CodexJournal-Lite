@@ -243,9 +243,6 @@ function doctorAll(cfg) {
 
 // -------- backward-compatible exports ------------------------------------
 
-// Eagerly load built-in adapters for backward compatibility
-const _builtIn = loadAdapters();
-
 module.exports = {
   // Auto-discovery
   loadAdapters,
@@ -253,10 +250,12 @@ module.exports = {
   collectAll,
   probeAll,
   doctorAll,
-  // Backward-compatible direct references
-  codex: _builtIn.codex,
-  claude: _builtIn.claude,
-  idea: _builtIn.idea,
+  // Backward-compatible direct references — delegate to loadAdapters()
+  // so they always reflect the current state (including plugins loaded
+  // after module initialisation).
+  get codex() { return loadAdapters().codex; },
+  get claude() { return loadAdapters().claude; },
+  get idea() { return loadAdapters().idea; },
   // Config helpers
   getSourceByName,
   isSourceEnabled,
@@ -265,11 +264,13 @@ module.exports = {
   shouldArchiveSource,
   // Convenience: run the IDEA probe only
   scanIdeaLogs: function (cfg) {
-    const idea = _builtIn.idea;
+    const adapters = loadAdapters();
+    const idea = adapters.idea;
     return idea ? idea.scan(cfg) : { source: 'idea-ai', existingRoots: [], discoveredLogDirs: [], summary: {} };
   },
   renderInventory: function (result) {
-    const idea = _builtIn.idea;
+    const adapters = loadAdapters();
+    const idea = adapters.idea;
     return idea ? idea.renderMarkdown(result) : '';
   }
 };
