@@ -55,10 +55,9 @@ function writeRenameSafe(tmpPath, targetPath) {
       return;
     } catch (err) {
       if (attempt >= maxAttempts - 1) throw err;
-      // Exponential backoff: 250ms, 500ms, 1s, 2s, 4s, 8s, 16s...
-      const delay = 250 * Math.pow(2, attempt);
-      const deadline = Date.now() + delay;
-      while (Date.now() < deadline) { /* spin */ }
+      // Lock is usually released within a few ms; retry immediately.
+      // If it persists after a few tries the lock is likely held by a
+      // long-running process and further retries won't help.
     }
   }
 }

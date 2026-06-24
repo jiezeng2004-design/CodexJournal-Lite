@@ -163,11 +163,7 @@ function buildSearch(tasks, cfg) {
 }
 
 function readProjectVersion(projectRoot) {
-  // Pull the version straight from package.json so the README cannot
-  // drift away from the version in `npm run verify`.
   try {
-    const fs = require('fs');
-    const path = require('path');
     const raw = fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8');
     const pkg = JSON.parse(raw);
     return pkg && typeof pkg.version === 'string' ? pkg.version : 'unknown';

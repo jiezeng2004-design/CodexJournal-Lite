@@ -303,17 +303,17 @@ function cmdPreview(cfg, opts) {
       }
       process.stdout.write('sessions: ' + scan.files.length + ' total, ' + newFiles.length + ' new, ' + changedFiles.length + ' changed, ' + unchanged + ' unchanged\n');
       if (newFiles.length > 0 || changedFiles.length > 0) {
-        var previewCount = Math.min(10, newFiles.length + changedFiles.length);
-        var previewFiles = newFiles.slice(0, 5).concat(changedFiles.slice(0, 5)).slice(0, previewCount);
-        for (var pi = 0; pi < previewFiles.length; pi++) {
-          var file = previewFiles[pi];
-          var label = newFiles.indexOf(file) >= 0 ? 'NEW' : 'CHANGED';
+        const previewCount = Math.min(10, newFiles.length + changedFiles.length);
+        const previewFiles = newFiles.slice(0, 5).concat(changedFiles.slice(0, 5)).slice(0, previewCount);
+        for (let pi = 0; pi < previewFiles.length; pi++) {
+          const file = previewFiles[pi];
+          const label = newFiles.indexOf(file) >= 0 ? 'NEW' : 'CHANGED';
           try {
-            var r = processFileRecord(file, cfg);
-            for (var ti = 0; ti < r.tasks.length; ti++) {
-              var t = r.tasks[ti];
-              var diffResult = sanitize.sanitizeTaskWithDiff(t);
-              var redacted = diffResult.task;
+            const r = processFileRecord(file, cfg);
+            for (let ti = 0; ti < r.tasks.length; ti++) {
+              const t = r.tasks[ti];
+              const diffResult = sanitize.sanitizeTaskWithDiff(t);
+              const redacted = diffResult.task;
               process.stdout.write('  [' + label + '] ' + sanitize.redactPath(file.path) + '\n');
               process.stdout.write('    title: ' + redacted.title + '\n');
               process.stdout.write('    type:  ' + redacted.taskType + '\n');
@@ -326,7 +326,7 @@ function cmdPreview(cfg, opts) {
             process.stdout.write('  [' + label + '] ' + sanitize.redactPath(file.path) + ' (parse error: ' + (err.message || err) + ')\n');
           }
         }
-        var remaining = (newFiles.length + changedFiles.length) - previewCount;
+        const remaining = (newFiles.length + changedFiles.length) - previewCount;
         if (remaining > 0) { process.stdout.write('  ... and ' + remaining + ' more session(s)\n'); }
       }
     }
@@ -433,20 +433,21 @@ function cmdPreviewSource(cfg, sourceName) {
 // -------- changelog: compare fingerprint cache with current sessions ---
 function cmdChangelog(cfg) {
   logHeader("changelog");
-  var scan = scanner.scanSessionsDir(cfg.sessionsDir);
+  const scan = scanner.scanSessionsDir(cfg.sessionsDir);
   if (scan.missing) { process.stdout.write("sessions dir missing: " + cfg.sessionsDir + "\n"); return 0; }
-  var index = loadIndex(cfg);
-  var fileMap = index.files || {};
-  var newFiles = [], changedFiles = [], unchanged = 0;
-  for (var fi = 0; fi < scan.files.length; fi++) {
-    var file = scan.files[fi];
-    var fp = utils.fileFingerprint(file.path, { size: file.size, mtimeMs: file.mtimeMs });
-    var prev = fileMap[file.path];
+  const index = loadIndex(cfg);
+  const fileMap = index.files || {};
+  const newFiles = [], changedFiles = [];
+  let unchanged = 0;
+  for (let fi = 0; fi < scan.files.length; fi++) {
+    const file = scan.files[fi];
+    const fp = utils.fileFingerprint(file.path, { size: file.size, mtimeMs: file.mtimeMs });
+    const prev = fileMap[file.path];
     if (!prev) { newFiles.push(file); }
     else if (prev.fingerprint !== fp) { changedFiles.push(file); }
     else { unchanged++; }
   }
-  var lines = [];
+  const lines = [];
   lines.push("# Changelog");
   lines.push("");
   lines.push("- generated: " + new Date().toISOString());
@@ -460,9 +461,9 @@ function cmdChangelog(cfg) {
   } else {
     function displayTask(file, label) {
       try {
-        var r = processFileRecord(file, cfg);
-        for (var ti = 0; ti < r.tasks.length; ti++) {
-          var red = sanitizeTaskForExport(r.tasks[ti]);
+        const r = processFileRecord(file, cfg);
+        for (let ti = 0; ti < r.tasks.length; ti++) {
+          const red = sanitizeTaskForExport(r.tasks[ti]);
           lines.push("- **[" + label + "] " + red.title + "** (" + red.taskType + ", " + r.tasks[ti].messageCount + " msgs)");
           lines.push("  - file: " + sanitize.redactPath(file.path));
         }
@@ -474,7 +475,7 @@ function cmdChangelog(cfg) {
     lines.push("");
     if (newFiles.length === 0) { lines.push("_(none)_"); }
     else {
-      for (var ni = 0; ni < Math.min(newFiles.length, 10); ni++) { displayTask(newFiles[ni], "NEW"); }
+      for (let ni = 0; ni < Math.min(newFiles.length, 10); ni++) { displayTask(newFiles[ni], "NEW"); }
       if (newFiles.length > 10) { lines.push("- _... and " + (newFiles.length - 10) + " more_"); }
     }
     lines.push("");
@@ -482,12 +483,12 @@ function cmdChangelog(cfg) {
     lines.push("");
     if (changedFiles.length === 0) { lines.push("_(none)_"); }
     else {
-      for (var ci = 0; ci < Math.min(changedFiles.length, 5); ci++) { displayTask(changedFiles[ci], "CHANGED"); }
+      for (let ci = 0; ci < Math.min(changedFiles.length, 5); ci++) { displayTask(changedFiles[ci], "CHANGED"); }
       if (changedFiles.length > 5) { lines.push("- _... and " + (changedFiles.length - 5) + " more_"); }
     }
   }
   lines.push("");
-  var md = lines.join("\n");
+  const md = lines.join("\n");
   utils.writeTextSafe(path.join(cfg.reportsDir, "fingerprint-changes.md"), md);
   process.stdout.write("wrote: reports/fingerprint-changes.md\n");
   process.stdout.write("new=" + newFiles.length + " changed=" + changedFiles.length + " unchanged=" + unchanged + "\n");
