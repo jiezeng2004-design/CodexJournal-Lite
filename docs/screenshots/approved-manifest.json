@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "source": "synthetic-public-demo",
+  "manualReview": true,
+  "reviewedAt": "2026-07-23",
+  "reviewChecklist": [
+    "no real username",
+    "no real workspace path",
+    "no share link or session id",
+    "no real task or conversation content",
+    "generated from scripts/create-public-demo-workspace.js"
+  ],
+  "screenshots": [
+    {
+      "file": "01-dashboard.png",
+      "sha256": "3f30018624e65b2a160f31e3768b3102716641144060ee21025ce6139e3270e8"
+    },
+    {
+      "file": "02-search.png",
+      "sha256": "0f0fb1dcd37c1cf8554a58db1a62a7ef56bca9fc1b99d601063467643a14dbb6"
+    },
+    {
+      "file": "03-journal.png",
+      "sha256": "70b3b7342cc65207c3657e6d1bba2fd941a712768107f31f2661a27ac3bfe08b"
+    },
+    {
+      "file": "04-data-tasks.png",
+      "sha256": "d7d5c3c38ec781279ac562dc0eca8fc86a8e6368820cd9a75a6ab6ce2c6af06f"
+    },
+    {
+      "file": "05-sources.png",
+      "sha256": "4c3d1df80c550fcbe768c006cb7220b1b0a024d386756babc9f1d7a91c56add5"
+    }
+  ]
+}
+

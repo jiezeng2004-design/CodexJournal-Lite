@@ -6,7 +6,7 @@
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1
-#   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1 -ZipPath "dist/CodexJournal-Lite-v1.4.2-public.zip"
+#   powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1 -ZipPath "dist/CodexJournal-Lite-v1.4.3-public.zip"
 
 [CmdletBinding()]
 param(
@@ -90,7 +90,9 @@ $required = @(
     '.github/workflows/ci.yml',
     'scripts/package-public.ps1',
     'scripts/verify-public-zip.ps1',
+    'scripts/check-screenshot-privacy.js',
     'docs/privacy.md',
+    'docs/screenshots/approved-manifest.json',
     'console/server.js',
     'data/README.md',
     'journal/README.md',
@@ -100,7 +102,44 @@ foreach ($req in $required) {
     check "required file present: $req" ($entryNames.Contains($req)) ''
 }
 
-# 4. Forbidden entries absent
+# 4. Public screenshots must match the manually approved synthetic manifest.
+$manifestEntry = $za.GetEntry('docs/screenshots/approved-manifest.json')
+if ($null -ne $manifestEntry) {
+    $manifestStream = $manifestEntry.Open()
+    $reader = [System.IO.StreamReader]::new($manifestStream)
+    try {
+        $manifest = ($reader.ReadToEnd() | ConvertFrom-Json)
+    } finally {
+        $reader.Dispose()
+        $manifestStream.Dispose()
+    }
+
+    check 'screenshot manifest records synthetic provenance' `
+        ($manifest.source -eq 'synthetic-public-demo' -and $manifest.manualReview -eq $true) `
+        'manifest must use synthetic-public-demo and manualReview=true'
+
+    foreach ($item in $manifest.screenshots) {
+        $entryName = "docs/screenshots/$($item.file)"
+        $screenshotEntry = $za.GetEntry($entryName)
+        check "approved screenshot present: $($item.file)" ($null -ne $screenshotEntry) ''
+        if ($null -ne $screenshotEntry) {
+            $screenshotStream = $screenshotEntry.Open()
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $hashBytes = $sha.ComputeHash($screenshotStream)
+                $actualHash = -join ($hashBytes | ForEach-Object { $_.ToString('x2') })
+            } finally {
+                $sha.Dispose()
+                $screenshotStream.Dispose()
+            }
+            check "approved screenshot hash: $($item.file)" `
+                ($actualHash -eq $item.sha256) `
+                "expected $($item.sha256), got $actualHash"
+        }
+    }
+}
+
+# 5. Forbidden entries absent
 $forbidden = @(
     '.git/',
     'node_modules/',

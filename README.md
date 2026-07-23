@@ -67,15 +67,19 @@ per-source details.
 
 ## Screenshots
 
-> **Note:** The screenshots below show the v0.5.2-era UI. The current v1.4.x Dashboard includes additional summary cards (weekly stats, streak, source distribution, verify status), project activity panel, enhanced search with help panel and filter chips, and task detail with copy-JSON support. Updated screenshots will be provided in a future release.
+> Screenshots below show the v1.4.3 Dashboard using a fully synthetic public-demo workspace.
 
-| Dashboard (v0.5.2 preview) | Search (v0.5.2 preview) |
+| Dashboard Overview | Search with Field Syntax |
 | --- | --- |
 | ![Dashboard overview](docs/screenshots/01-dashboard.png) | ![Search view](docs/screenshots/02-search.png) |
 
-| Data filter (v0.5.2 preview) | Dark search (v0.5.2 preview) |
+| Journal Browser | Data & Task List |
 | --- | --- |
-| ![Data filter](docs/screenshots/03-data-filter.png) | ![Dark search view](docs/screenshots/04-search-dark.png) |
+| ![Journal](docs/screenshots/03-journal.png) | ![Data tasks](docs/screenshots/04-data-tasks.png) |
+
+| Sources Diagnostics | | |
+| --- | --- | --- |
+| ![Sources](docs/screenshots/05-sources.png) | | |
 
 ## Privacy Model
 
@@ -288,7 +292,7 @@ documentation, and test fixtures.
 ## Release Packaging
 
 Public release packages are generated automatically by GitHub Actions when a
-version tag such as `v1.4.2` is pushed.
+version tag such as `v1.4.3` is pushed.
 
 The release workflow builds:
 

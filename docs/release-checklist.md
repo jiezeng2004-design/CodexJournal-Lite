@@ -90,6 +90,14 @@ The tag name must be `v` + the version number (e.g. `v1.4.0`).
 
 ## 6. npm Publishing
 
+Before building any public package, verify that documentation screenshots come only from the synthetic public-demo workspace:
+
+```bash
+npm run test:screenshots
+```
+
+Inspect all five PNG files at full resolution. They must not contain real usernames, local workspace/session paths, share links, session IDs, task text, or conversation content. The approved SHA-256 manifest prevents later unreviewed replacements; it does not replace this manual review.
+
 First, do a dry run to inspect what will be published:
 
 ```bash
@@ -121,7 +129,8 @@ npm run package:public
 npm run verify:public-zip
 ```
 
-The `verify:public-zip` script rejects `.git/`, `.env`, `node_modules/`,
+The `verify:public-zip` script verifies the approved synthetic screenshot
+manifest and rejects `.git/`, `.env`, `node_modules/`,
 generated journals, task records, local reports, nested ZIP files, and
 other non-public outputs. It must exit 0.
 

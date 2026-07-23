@@ -47,6 +47,14 @@ $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir '..')
 $DistDir     = Join-Path $ProjectRoot 'dist'
 
+$ScreenshotCheck = Join-Path $ProjectRoot 'scripts\check-screenshot-privacy.js'
+& node $ScreenshotCheck
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'ERROR: public screenshot privacy approval check failed.' -ForegroundColor Red
+    exit 8
+}
+Write-Host '[package-public] screenshot privacy approval check passed.'
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $PackageJson = Join-Path $ProjectRoot 'package.json'
     try {

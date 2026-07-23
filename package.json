@@ -1,6 +1,6 @@
 {
   "name": "codexjournal-lite",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Local-only multi-source CLI + dashboard that turns AI coding session files (Codex, Claude Code, Gemini CLI, OpenCode, JetBrains) into a personal AI work journal. No GUI, no DB, no upload. Privacy by design.",
   "bin": {
     "codexjournal-lite": "src/index.js",
@@ -8,7 +8,7 @@
   },
   "main": "src/index.js",
   "scripts": {
-    "test": "npm run test:sanitize && npm run test:sources && npm run test:archive && npm run test:privacy && npm run test:console && npm run test:root && npm run test:source-doctor && npm run test:release && npm run test:export && npm run test:tags && npm run test:cluster && npm run test:migration",
+    "test": "npm run test:sanitize && npm run test:sources && npm run test:archive && npm run test:privacy && npm run test:console && npm run test:root && npm run test:source-doctor && npm run test:release && npm run test:export && npm run test:tags && npm run test:cluster && npm run test:migration && npm run test:screenshots",
     "archive": "node src/index.js archive",
     "build-index": "node src/index.js build-index",
     "stats": "node src/index.js stats",
@@ -31,6 +31,8 @@
     "test:tags": "node src/tags.test.js",
     "test:cluster": "node src/cluster.test.js",
     "test:migration": "node src/migration.test.js",
+    "test:screenshots": "node scripts/check-screenshot-privacy.js",
+    "create:public-demo": "node scripts/create-public-demo-workspace.js",
     "smoke": "node scripts/smoke-test.js && node src/console.smoke.test.js",
     "summarize": "node src/index.js summarize",
     "doctor": "node src/index.js doctor",
@@ -41,7 +43,8 @@
     "package:public": "powershell -ExecutionPolicy Bypass -File scripts/package-public.ps1",
     "verify:public-zip": "powershell -ExecutionPolicy Bypass -File scripts/verify-public-zip.ps1",
     "release:check": "node src/index.js release-check",
-    "console": "node console/server.js"
+    "console": "node console/server.js",
+    "prepack": "npm run test:screenshots"
   },
   "engines": {
     "node": ">=18.0.0"
