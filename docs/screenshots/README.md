@@ -29,3 +29,6 @@ npm.cmd pack --dry-run
 
 The hash manifest prevents an unreviewed screenshot replacement from entering the public ZIP or npm package. It does not replace full-resolution human review.
 
+## History cleanup
+
+On 2026-07-23, the repository history was rewritten under maintainer authorization to remove the pre-v1.4.3 screenshot objects. The five files currently in this directory are the synthetic, manually approved v1.4.3 screenshots listed in `approved-manifest.json`.
