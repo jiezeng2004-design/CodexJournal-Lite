@@ -5,6 +5,17 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+## [1.4.3] - 2026-07-23
+
+### Security
+- Replaced documentation screenshots containing real task and session content with five screenshots generated from a fully synthetic public-demo workspace.
+- Added a manually approved SHA-256 screenshot manifest and enforced it in tests, npm prepack, public ZIP packaging, and public ZIP verification.
+- Added full-resolution screenshot privacy review requirements to the release checklist.
+
+### Added
+- Added `create:public-demo` for reproducible synthetic screenshot data.
+- Added `test:screenshots` to reject missing, renamed, or unapproved screenshot files.
+
 ## [1.4.2] - 2026-06-23
 
 ### Fixed

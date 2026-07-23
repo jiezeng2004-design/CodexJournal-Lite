@@ -214,9 +214,9 @@ test('app.js does not contain weeks * 7 in cols calculation', function() {
 // ------------------------------------------------------------------
 section('Version consistency');
 
-test('package.json version is 1.4.2', function() {
+test('package.json version is 1.4.3', function() {
   const pkg = JSON.parse(fs.readFileSync(path.join(roots.APP_ROOT, 'package.json'), 'utf8'));
-  assert.strictEqual(pkg.version, '1.4.2');
+  assert.strictEqual(pkg.version, '1.4.3');
 });
 test('CLI help reports all 19 release checks', function() {
   const indexSrc = fs.readFileSync(path.join(roots.APP_ROOT, 'src', 'index.js'), 'utf8');
