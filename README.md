@@ -67,7 +67,7 @@ per-source details.
 
 ## Screenshots
 
-> Screenshots below show the v1.4.2 Dashboard with KPI summary cards, daily activity heatmap, task type distribution, top keywords, recent activity, and project activity panel.
+> Screenshots below show the v1.4.3 Dashboard using a fully synthetic public-demo workspace.
 
 | Dashboard Overview | Search with Field Syntax |
 | --- | --- |
@@ -292,7 +292,7 @@ documentation, and test fixtures.
 ## Release Packaging
 
 Public release packages are generated automatically by GitHub Actions when a
-version tag such as `v1.4.2` is pushed.
+version tag such as `v1.4.3` is pushed.
 
 The release workflow builds:
 

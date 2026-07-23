@@ -82,7 +82,7 @@ function main() {
     for (const keyword of task.keywords) topKeywords[keyword] = (topKeywords[keyword] || 0) + 1;
   }
 
-  writeJson(path.join(outDir, 'package.json'), { name: 'codexjournal-lite-public-demo', version: '1.4.2' });
+  writeJson(path.join(outDir, 'package.json'), { name: 'codexjournal-lite-public-demo', version: '1.4.3' });
   writeJson(path.join(outDir, 'config.json'), {
     sessionsDir: 'C:\\Public\\CodexJournalDemo\\codex-sessions',
     journalDir: 'journal',
