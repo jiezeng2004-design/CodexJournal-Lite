@@ -13,6 +13,8 @@
 
 Everything stays on your machine. No upload. No telemetry. No third-party npm dependencies.
 
+Current release: **v1.4.3**.
+
 ## The problem
 
 AI coding assistants generate a lot of valuable context:
